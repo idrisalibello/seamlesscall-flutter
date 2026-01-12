@@ -7,6 +7,7 @@ import 'login_screen.dart';
 import 'package:seamlesscall/features/dashboard/dashboard_screen.dart';
 import '../data/auth_repository.dart';
 import '../data/auth_api.dart';
+import 'package:seamlesscall/common/utils/phone_utils.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -55,7 +56,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
   Future<void> _register() async {
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
-    final phone = _phoneController.text.trim();
+    final phone = normalizePhone(_phoneController.text.trim());
     final password = _passwordController.text;
     final confirmPassword = _passwordConfirmController.text;
 
