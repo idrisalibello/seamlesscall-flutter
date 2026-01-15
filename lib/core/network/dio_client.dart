@@ -12,7 +12,7 @@ class DioClient {
   DioClient._internal() {
     dio = Dio(
       BaseOptions(
-        baseUrl: 'http://127.0.0.1:8000/api/v1',
+        baseUrl: 'http://10.88.93.59/seamless_call/public/api/v1',
         connectTimeout: const Duration(seconds: 5),
         receiveTimeout: const Duration(seconds: 5),
       ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart'; // Still needed by AuthRepository
+
 // import 'package:seamlesscall/features/auth/data/auth_api.dart'; // No longer needed directly
 import 'package:seamlesscall/features/auth/data/auth_repository.dart'; // NEW: Import AuthRepository
 import 'package:seamlesscall/app_shell/presentation/customer_shell.dart';
@@ -36,7 +36,8 @@ class _OtpScreenState extends State<OtpScreen> {
       String formattedPhone = widget.phone;
       // Remove leading '0' if present and not already E.164
       if (formattedPhone.startsWith('0') && !formattedPhone.startsWith('+')) {
-        formattedPhone = '234${formattedPhone.substring(1)}'; // Assuming Nigeria's country code is 234
+        formattedPhone =
+            '234${formattedPhone.substring(1)}'; // Assuming Nigeria's country code is 234
       }
       // Ensure it starts with '+'
       if (!formattedPhone.startsWith('+')) {
@@ -45,9 +46,9 @@ class _OtpScreenState extends State<OtpScreen> {
 
       await _authRepository.requestLoginOtp(formattedPhone);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('OTP sent successfully')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('OTP sent successfully')));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

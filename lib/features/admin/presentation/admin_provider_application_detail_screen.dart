@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:seamlesscall/core/network/dio_client.dart';
+import 'package:seamlesscall/features/admin/data/admin_repository.dart';
 
-class AdminProviderApplicationDetailScreen extends StatelessWidget {
+class AdminProviderApplicationDetailScreen extends StatefulWidget {
   final Map<String, dynamic> application;
 
   const AdminProviderApplicationDetailScreen({
@@ -9,8 +11,18 @@ class AdminProviderApplicationDetailScreen extends StatelessWidget {
   });
 
   @override
+  State<AdminProviderApplicationDetailScreen> createState() =>
+      _AdminProviderApplicationDetailScreenState();
+}
+
+class _AdminProviderApplicationDetailScreenState
+    extends State<AdminProviderApplicationDetailScreen> {
+  final AdminRepository _adminRepo = AdminRepository();
+  bool _isLoading = false;
+
+  @override
   Widget build(BuildContext context) {
-    final isCompany = application['is_company'] == 1;
+    final isCompany = widget.application['is_company'] == 1;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Provider Application Review')),
@@ -19,16 +31,19 @@ class AdminProviderApplicationDetailScreen extends StatelessWidget {
         child: ListView(
           children: [
             _sectionTitle(context, 'Applicant Information'),
-            _infoRow('Full Name', application['name']),
-            _infoRow('Email', application['email']),
-            _infoRow('Phone', application['phone']),
-            _infoRow('Location', application['location']),
+            _infoRow('Full Name', widget.application['name']),
+            _infoRow('Email', widget.application['email']),
+            _infoRow('Phone', widget.application['phone']),
+            _infoRow('Location', widget.application['location']),
 
             const SizedBox(height: 20),
 
             _sectionTitle(context, 'Service Details'),
-            _infoRow('Service Category', application['service_category']),
-            _infoRow('Applied On', application['submitted_at']),
+            _infoRow(
+              'Service Category',
+              widget.application['service_category'],
+            ),
+            _infoRow('Applied On', widget.application['submitted_at']),
 
             const SizedBox(height: 20),
 
@@ -36,7 +51,7 @@ class AdminProviderApplicationDetailScreen extends StatelessWidget {
             _infoRow('Application Type', isCompany ? 'Company' : 'Individual'),
             _infoRow(
               'Company Name',
-              isCompany ? application['company_name'] : '—',
+              isCompany ? widget.application['company_name'] : '—',
             ),
 
             const SizedBox(height: 32),
@@ -49,14 +64,13 @@ class AdminProviderApplicationDetailScreen extends StatelessWidget {
                       backgroundColor: Colors.green,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
-                    icon: const Icon(Icons.check),
+                    icon: _isLoading
+                        ? const CircularProgressIndicator()
+                        : const Icon(Icons.check),
                     label: const Text('Approve Provider'),
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Provider approved')),
-                      );
-                      Navigator.pop(context);
-                    },
+                    onPressed: _isLoading
+                        ? null
+                        : () => _handleAction(context, 'approve'),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -66,14 +80,13 @@ class AdminProviderApplicationDetailScreen extends StatelessWidget {
                       backgroundColor: Colors.red,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
-                    icon: const Icon(Icons.close),
+                    icon: _isLoading
+                        ? const CircularProgressIndicator()
+                        : const Icon(Icons.close),
                     label: const Text('Reject Application'),
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Provider rejected')),
-                      );
-                      Navigator.pop(context);
-                    },
+                    onPressed: _isLoading
+                        ? null
+                        : () => _handleAction(context, 'reject'),
                   ),
                 ),
               ],
@@ -113,5 +126,35 @@ class AdminProviderApplicationDetailScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _handleAction(BuildContext context, String action) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final userId =
+          widget.application['id'] as int; // Assuming 'id' is the user_id
+      await _adminRepo.approveOrRejectProvider(userId, action);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Provider application ${action}d successfully!'),
+        ),
+      );
+      Navigator.pop(
+        context,
+        true,
+      ); // Pop with true to indicate a successful action
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to ${action} provider application: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 }

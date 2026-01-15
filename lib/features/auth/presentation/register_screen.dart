@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:seamlesscall/app_shell/presentation/customer_shell.dart';
 import '../../../common/widgets/gradient_button.dart';
 import 'login_screen.dart';
-import 'package:seamlesscall/features/dashboard/dashboard_screen.dart';
+
 import '../data/auth_repository.dart';
 import '../data/auth_api.dart';
 import 'package:seamlesscall/common/utils/phone_utils.dart';

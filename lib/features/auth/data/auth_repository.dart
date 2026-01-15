@@ -1,13 +1,16 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:seamlesscall/features/auth/data/auth_api.dart';
 import 'package:seamlesscall/features/auth/domain/appuser.dart';
-import 'package:jwt_decoder/jwt_decoder.dart'; // Import for JWT decoding
+import 'package:jwt_decoder/jwt_decoder.dart';
+import 'dart:developer';
 
 class AuthRepository {
-  final AuthApi api;
-  final _storage = const FlutterSecureStorage(); // Use _storage for consistency
+  final AuthApi _api;
+  final FlutterSecureStorage _storage;
 
-  AuthRepository({AuthApi? api}) : api = api ?? AuthApi(); // Allow optional api for testing
+  AuthRepository({AuthApi? api, FlutterSecureStorage? storage})
+      : _api = api ?? AuthApi(),
+        _storage = storage ?? const FlutterSecureStorage();
 
   Future<AppUser> register({
     required String name,
@@ -17,7 +20,7 @@ class AuthRepository {
     required String passwordConfirmation,
     required String role,
   }) async {
-    final user = await api.register(
+    final user = await _api.register(
       name: name,
       email: email,
       phone: phone,
@@ -25,27 +28,71 @@ class AuthRepository {
       passwordConfirmation: passwordConfirmation,
       role: role,
     );
-    print(user); // Keep for debugging if needed
     return user;
   }
 
   Future<AppUser> login({
-    required String identifier, // Changed from email to identifier
+    required String identifier,
     required String password,
   }) async {
-    final result = await api.login(identifier: identifier, password: password); // Corrected argument name
+    final result = await _api.login(identifier: identifier, password: password);
     final token = result['token'] as String;
     final user = AppUser.fromJson(Map<String, dynamic>.from(result['user']));
     await _storage.write(key: 'auth_token', value: token);
     return user;
   }
 
-  Future<void> requestLoginOtp(String identifier) async {
-    await api.requestLoginOtp(identifier);
+  Future<AppUser> socialLogin({
+    required String provider,
+    required String token,
+  }) async {
+    log('[AuthRepository] Attempting social login with provider: $provider');
+    try {
+      final result = await _api.socialLogin(provider: provider, token: token);
+      log('[AuthRepository] Social login API call successful. Processing result...');
+
+      if (result['token'] == null || result['user'] == null) {
+        log('[AuthRepository] API response is missing token or user data.');
+        throw Exception('Invalid response format from server.');
+      }
+
+      final authToken = result['token'] as String;
+      final userData = result['user'];
+
+      if (userData is! Map<String, dynamic>) {
+        log('[AuthRepository] "user" data is not a valid map.');
+        throw Exception('Invalid user data format from server.');
+      }
+
+      final user = AppUser.fromJson(userData);
+      log('[AuthRepository] User parsed successfully: ${user.name}');
+
+      await _storage.write(key: 'auth_token', value: authToken);
+      log('[AuthRepository] Auth token securely stored.');
+
+      return user;
+    } catch (e) {
+      log('[AuthRepository] Social login failed: $e');
+      rethrow;
+    }
   }
 
-  Future<String> loginWithOtp(String identifier, String otp) async { // Returns String token
-    final token = await api.loginWithOtp(identifier, otp);
+  Future<AppUser> loginWithGoogle(String token) {
+    log('[AuthRepository] Calling socialLogin for Google.');
+    return socialLogin(provider: 'google', token: token);
+  }
+
+  Future<AppUser> loginWithFacebook(String token) {
+    log('[AuthRepository] Calling socialLogin for Facebook.');
+    return socialLogin(provider: 'facebook', token: token);
+  }
+
+  Future<void> requestLoginOtp(String identifier) async {
+    await _api.requestLoginOtp(identifier);
+  }
+
+  Future<String> loginWithOtp(String identifier, String otp) async {
+    final token = await _api.loginWithOtp(identifier, otp);
     await _storage.write(key: 'auth_token', value: token);
     return token;
   }
@@ -56,7 +103,23 @@ class AuthRepository {
 
   Future<String?> getToken() => _storage.read(key: 'auth_token');
 
-  // Helper to get user data from stored token
+  Future<Map<String, dynamic>> applyAsProvider({
+    required String companyName,
+    required String location,
+    required String services,
+  }) async {
+    final token = await getToken();
+    if (token == null) {
+      throw Exception('Authentication token not found.');
+    }
+    return _api.applyAsProvider(
+      token: token,
+      companyName: companyName,
+      location: location,
+      services: services,
+    );
+  }
+
   Future<AppUser?> getLoggedInUser() async {
     final token = await getToken();
     if (token == null) return null;
@@ -66,12 +129,9 @@ class AuthRepository {
       return null;
     }
 
-    Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
-    // This still requires a full AppUser.
-    // For simplicity for now, if getLoggedInUser needs to return AppUser,
-    // it implies a mechanism to get full user data.
-    // Let's postpone this complexity for this task.
-    // Returning null for now if full AppUser cannot be constructed.
-    return null; // Or throw an error, depending on desired behavior.
+    // This part of the original code seems incomplete.
+    // A full AppUser object cannot be constructed from the token alone
+    // without another API call. Returning null as per original logic.
+    return null;
   }
 }

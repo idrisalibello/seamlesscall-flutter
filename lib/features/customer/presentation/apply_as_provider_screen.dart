@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:seamlesscall/features/auth/data/auth_repository.dart';
 
 class ApplyAsProviderScreen extends StatefulWidget {
   const ApplyAsProviderScreen({super.key});
@@ -19,50 +18,44 @@ class _ApplyAsProviderScreenState extends State<ApplyAsProviderScreen> {
   bool _isCompany = false;
   bool _submitting = false;
 
-  final storage = const FlutterSecureStorage();
-  final Dio dio = Dio();
+  late final AuthRepository _authRepository;
+
+  @override
+  void initState() {
+    super.initState();
+    _authRepository = AuthRepository();
+  }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate() || _serviceCategory == null) return;
 
     setState(() => _submitting = true);
 
     try {
-      // Retrieve JWT token from secure storage
-      final token = await storage.read(key: 'jwt_token');
-      if (token == null) throw Exception('User not logged in');
-
-      final payload = {
-        'company_name': _companyController.text.trim(),
-        'location': _locationController.text.trim(),
-        'services': _serviceCategory,
-        'is_company': _isCompany ? 1 : 0,
-        'description': _descriptionController.text.trim(),
-      };
-
-      final response = await dio.post(
-        'http://your-server.com/auth/provider/apply-as-customer',
-        data: payload,
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $token',
-            'Content-Type': 'application/json',
-          },
-        ),
+      final response = await _authRepository.applyAsProvider(
+        companyName: _companyController.text.trim(),
+        location: _locationController.text.trim(),
+        services: _serviceCategory!,
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(response.data['message'] ?? 'Application submitted'),
+          content: Text(response['message'] ?? 'Application submitted successfully. Await admin approval.'),
+          backgroundColor: Colors.green,
         ),
       );
       Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+      ).showSnackBar(SnackBar(
+        content: Text('Error: ${e.toString()}'),
+        backgroundColor: Colors.red,
+      ));
     } finally {
-      setState(() => _submitting = false);
+      if (mounted) {
+        setState(() => _submitting = false);
+      }
     }
   }
 

@@ -1,13 +1,58 @@
+import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:provider/provider.dart';
+import 'package:seamlesscall/features/auth/presentation/auth_providers.dart';
+import 'package:seamlesscall/features/dashboard/data/dashboard_repository.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  late DashboardRepository _dashboardRepository;
+  int? _customerCount;
+  int? _providerCount;
+
+  @override
+  void initState() {
+    super.initState();
+    _dashboardRepository = DashboardRepository();
+    _fetchDashboardStats();
+  }
+
+  Future<void> _fetchDashboardStats() async {
+    log('[DashboardScreen] Fetching dashboard stats...');
+    try {
+      final customerCount = await _dashboardRepository.getTotalCustomers();
+      final providerCount = await _dashboardRepository.getTotalProviders();
+      if (mounted) {
+        setState(() {
+          _customerCount = customerCount;
+          _providerCount = providerCount;
+        });
+        log('[DashboardScreen] Customer count updated: $_customerCount');
+        log('[DashboardScreen] Provider count updated: $_providerCount');
+      }
+    } catch (e) {
+      log('[DashboardScreen] Error fetching dashboard stats: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not fetch dashboard stats: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     final theme = Theme.of(context);
+    final authProvider = context.watch<AuthProvider>();
+    final userName = authProvider.user?.name ?? 'User';
 
     // Adjust grid for screen size
     final crossAxisCount = width > 1200
@@ -23,13 +68,13 @@ class DashboardScreen extends StatelessWidget {
       DashboardMetric(
         icon: Icons.people,
         title: "Customers",
-        count: 320,
+        count: _customerCount ?? 0,
         trend: 12,
       ),
       DashboardMetric(
         icon: Icons.handyman,
         title: "Handymen",
-        count: 58,
+        count: _providerCount ?? 0,
         trend: 3,
       ),
       DashboardMetric(
@@ -76,7 +121,7 @@ class DashboardScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Dashboard",
+            "Welcome, $userName!",
             style: theme.textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.bold,
             ),
@@ -118,6 +163,10 @@ class DashboardScreen extends StatelessWidget {
     final chartHeight = screenWidth < 600
         ? 25.0
         : 35.0; // responsive chart height
+
+    // Determine if the card is loading
+    final bool isLoading = (metric.title == "Customers" && _customerCount == null) ||
+                           (metric.title == "Handymen" && _providerCount == null);
 
     return GestureDetector(
       onTap: () {
@@ -179,7 +228,7 @@ class DashboardScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                "${metric.count}",
+                isLoading ? "..." : "${metric.count}",
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: isDark ? Colors.white : Colors.black,
@@ -196,7 +245,6 @@ class DashboardScreen extends StatelessWidget {
       ),
     );
   }
-
   Widget _trendIndicator(int trend) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,

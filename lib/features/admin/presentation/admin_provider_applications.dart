@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:seamlesscall/features/admin/data/admin_repository.dart';
 import 'admin_provider_application_detail_screen.dart';
 
 class AdminProviderApplicationsScreen extends StatefulWidget {
@@ -13,43 +14,37 @@ class _AdminProviderApplicationsScreenState
     extends State<AdminProviderApplicationsScreen> {
   bool _loading = true;
   List<Map<String, dynamic>> _applications = [];
+  String? _error;
+  late final AdminRepository _adminRepository;
 
   @override
   void initState() {
     super.initState();
+    _adminRepository = AdminRepository();
     _loadApplications();
   }
 
   Future<void> _loadApplications() async {
-    await Future.delayed(const Duration(milliseconds: 500));
-
     setState(() {
-      _applications = [
-        {
-          'id': 1,
-          'name': 'Mary Smith',
-          'email': 'mary@example.com',
-          'phone': '0816 555 8821',
-          'company_name': null,
-          'is_company': 0,
-          'location': 'Abuja',
-          'service_category': 'Electrical',
-          'submitted_at': '2025-01-13',
-        },
-        {
-          'id': 2,
-          'name': 'Elite Electricians Ltd',
-          'email': 'contact@elite.com',
-          'phone': '0803 123 4567',
-          'company_name': 'Elite Electricians Ltd',
-          'is_company': 1,
-          'location': 'Lagos',
-          'service_category': 'Electrical',
-          'submitted_at': '2025-01-14',
-        },
-      ];
-      _loading = false;
+      _loading = true;
+      _error = null;
     });
+    try {
+      final apps = await _adminRepository.getProviderApplications();
+      if (mounted) {
+        setState(() {
+          _applications = apps;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -59,14 +54,27 @@ class _AdminProviderApplicationsScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Provider Applications',
-            style: Theme.of(context).textTheme.headlineSmall,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Provider Applications',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: _loadApplications,
+              ),
+            ],
           ),
           const SizedBox(height: 16),
 
           if (_loading)
             const Expanded(child: Center(child: CircularProgressIndicator()))
+          else if (_error != null)
+             Expanded(
+              child: Center(child: Text('Error: $_error')),
+            )
           else if (_applications.isEmpty)
             const Expanded(
               child: Center(child: Text('No pending applications')),
@@ -78,6 +86,7 @@ class _AdminProviderApplicationsScreenState
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemBuilder: (_, index) {
                   final app = _applications[index];
+                  final submittedAt = app['provider_applied_at'] ?? 'N/A';
 
                   return Card(
                     elevation: 2,
@@ -87,11 +96,11 @@ class _AdminProviderApplicationsScreenState
                     child: ListTile(
                       leading: const Icon(Icons.person_outline),
                       title: Text(
-                        app['company_name'] ?? app['name'],
+                        app['company_name'] ?? app['name'] ?? 'Unnamed',
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       subtitle: Text(
-                        '${app['service_category']} • ${app['location']}\nApplied: ${app['submitted_at']}',
+                        '${app['location'] ?? 'N/A'}\nApplied: $submittedAt',
                       ),
                       isThreeLine: true,
                       trailing: const Icon(Icons.arrow_forward_ios, size: 16),

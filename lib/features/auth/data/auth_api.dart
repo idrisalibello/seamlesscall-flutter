@@ -5,8 +5,8 @@ class AuthApi {
   final Dio _dio =
       Dio(
           BaseOptions(
-            baseUrl: 'http://10.56.2.59/seamless_call/public/',
-            connectTimeout: const Duration(seconds: 15),
+            baseUrl: 'http://10.88.93.59/seamless_call/public/api/v1',
+            connectTimeout: const Duration(seconds: 60),
             receiveTimeout: const Duration(seconds: 15),
             headers: {
               'Accept': 'application/json',
@@ -41,6 +41,45 @@ class AuthApi {
           ),
         );
 
+  Future<Map<String, dynamic>> applyAsProvider({
+    required String token,
+    required String companyName,
+    required String location,
+    required String services,
+  }) async {
+    try {
+      final resp = await _dio.post(
+        '/auth/apply-as-provider',
+        data: {
+          'company_name': companyName,
+          'location': location,
+          'services': services,
+        },
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+        ),
+      );
+
+      if (resp.statusCode == 200) {
+        return Map<String, dynamic>.from(resp.data);
+      } else {
+        throw Exception(
+          'Application failed with status code ${resp.statusCode}: ${resp.data}',
+        );
+      }
+    } on DioError catch (e) {
+      if (e.response != null) {
+        throw Exception(
+          'Application failed: ${e.response?.statusCode} ${e.response?.data['messages']['error'] ?? e.response?.data}',
+        );
+      }
+      throw Exception('Network error: ${e.message}');
+    } catch (e) {
+      throw Exception('Unexpected error during application: $e');
+    }
+  }
+
+
   Future<AppUser> register({
     required String name,
     required String email,
@@ -51,7 +90,7 @@ class AuthApi {
   }) async {
     try {
       final resp = await _dio.post(
-        '/api/v1/register',
+        '/register',
         data: {
           'name': name,
           'email': email,
@@ -99,7 +138,7 @@ class AuthApi {
   }) async {
     try {
       final resp = await _dio.post(
-        '/api/v1/login',
+        '/login',
         data: {'email_or_phone': identifier, 'password': password},
       );
 
@@ -128,7 +167,7 @@ class AuthApi {
   Future<void> requestLoginOtp(String identifier) async {
     try {
       final resp = await _dio.post(
-        '/api/v1/auth/otp/request',
+        '/auth/otp/request',
         data: {'identifier': identifier},
       );
       if (resp.statusCode != 200) {
@@ -149,7 +188,7 @@ class AuthApi {
   Future<String> loginWithOtp(String identifier, String otp) async {
     try {
       final resp = await _dio.post(
-        '/api/v1/auth/otp/login',
+        '/auth/otp/login',
         data: {'identifier': identifier, 'otp': otp},
       );
       if (resp.statusCode == 200) {
@@ -171,6 +210,38 @@ class AuthApi {
       }
     } catch (e) {
       throw Exception('Unexpected error during OTP login: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> socialLogin({
+    required String provider,
+    required String token,
+  }) async {
+    try {
+      final resp = await _dio.post(
+        '/auth/oauth',
+        data: {'provider': provider, 'token': token},
+      );
+
+      if (resp.statusCode == 200) {
+        return Map<String, dynamic>.from(resp.data['data']);
+      } else {
+        throw Exception(
+          'Social login failed with status code ${resp.statusCode}: ${resp.data}',
+        );
+      }
+    } on DioError catch (e) {
+      if (e.response != null) {
+        throw Exception(
+          'Social login failed: ${e.response?.statusCode} ${e.response?.data}',
+        );
+      } else if (e.type == DioExceptionType.connectionTimeout) {
+        throw Exception('Connection timed out. Please try again.');
+      } else {
+        throw Exception('Social login failed: ${e.message}');
+      }
+    } catch (e) {
+      throw Exception('Unexpected error during social login: $e');
     }
   }
 }

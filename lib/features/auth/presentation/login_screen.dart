@@ -1,5 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:seamlesscall/features/auth/presentation/auth_providers.dart';
 import 'package:seamlesscall/features/auth/domain/appuser.dart';
 import 'package:seamlesscall/features/auth/data/auth_repository.dart';
 import 'package:seamlesscall/features/auth/presentation/otp_screen.dart';
@@ -7,6 +9,7 @@ import 'package:seamlesscall/app_shell/presentation/admin_shell.dart';
 import 'package:seamlesscall/app_shell/presentation/provider_shell.dart';
 import 'package:seamlesscall/app_shell/presentation/customer_shell.dart';
 import 'package:seamlesscall/common/utils/phone_utils.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../common/constants/theme.dart';
 import 'register_screen.dart';
 
@@ -63,6 +66,8 @@ class _LoginScreenState extends State<LoginScreen>
         identifier: identifier,
         password: password,
       );
+
+      Provider.of<AuthProvider>(context, listen: false).setUser(user);
 
       if (user.role == 'Admin' || user.role == 'Provider') {
         Navigator.push(
@@ -219,6 +224,91 @@ class _LoginScreenState extends State<LoginScreen>
                                         : const Text('Login'),
                                   ),
                                   const SizedBox(height: 8),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Divider(
+                                            color: theme.dividerColor
+                                                .withOpacity(0.4),
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                          ),
+                                          child: Text(
+                                            'or continue with',
+                                            style: theme.textTheme.bodySmall
+                                                ?.copyWith(
+                                                  color: theme
+                                                      .colorScheme
+                                                      .onSurface
+                                                      .withOpacity(0.6),
+                                                ),
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: Divider(
+                                            color: theme.dividerColor
+                                                .withOpacity(0.4),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 12),
+
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      IconButton(
+                                        iconSize: 26,
+                                        onPressed: () {
+                                          // TODO: Google sign-in later
+                                        },
+                                        icon: const FaIcon(
+                                          FontAwesomeIcons.google,
+                                          color: Colors.red,
+                                        ),
+                                      ),
+
+                                      const SizedBox(width: 20),
+
+                                      IconButton(
+                                        iconSize: 26,
+                                        onPressed: () {
+                                          // TODO: Facebook sign-in later
+                                        },
+                                        icon: const FaIcon(
+                                          FontAwesomeIcons.facebook,
+                                          color: Colors.blue,
+                                        ),
+                                      ),
+
+                                      const SizedBox(width: 20),
+
+                                      IconButton(
+                                        iconSize: 26,
+                                        onPressed: () {
+                                          // TODO: Biometric / fingerprint later
+                                        },
+                                        icon: const FaIcon(
+                                          FontAwesomeIcons.fingerprint,
+                                          color: Color.fromARGB(
+                                            221,
+                                            148,
+                                            216,
+                                            248,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
 
                                   TextButton(
                                     onPressed: () {
@@ -252,9 +342,12 @@ class _LoginScreenState extends State<LoginScreen>
                           child: Text(
                             'SeamlessCall • Built for fast local services',
                             style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onPrimary.withOpacity(
-                                0.85,
-                              ),
+                              color: const Color.fromARGB(
+                                255,
+                                255,
+                                255,
+                                255,
+                              ).withOpacity(0.85),
                             ),
                           ),
                         ),
