@@ -44,6 +44,7 @@ import 'package:seamlesscall/features/system/integrations_screen.dart';
 import 'package:seamlesscall/features/system/feature_toggles_screen.dart';
 import 'package:seamlesscall/features/system/maintenance_mode_screen.dart';
 import 'package:seamlesscall/features/admin/presentation/admin_provider_applications.dart';
+import 'package:seamlesscall/features/admin/presentation/create_admin_user_screen.dart';
 
 class AdminShell extends StatefulWidget {
   const AdminShell({super.key});
@@ -132,6 +133,10 @@ class _AdminShellState extends State<AdminShell> {
         return const SystemHealthReportScreen();
 
       // system
+
+      case '/admin/system/create-admin':
+        return const CreateAdminUserScreen();
+
       case '/admin/system/roles':
         return const RolesPermissionsScreen();
 
@@ -208,6 +213,7 @@ class _AdminShellState extends State<AdminShell> {
       //
       divider(),
       header('System'),
+      item('Create Admin User', '/admin/system/create-admin'),
       item('Roles & Permissions', '/admin/system/roles'),
       item('Integrations', '/admin/system/integrations'),
       item('Feature Toggles', '/admin/system/features'),

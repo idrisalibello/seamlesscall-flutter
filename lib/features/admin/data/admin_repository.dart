@@ -60,4 +60,43 @@ class AdminRepository {
       throw Exception('An unexpected error occurred: $e');
     }
   }
+
+  Future<void> createAdminUser({
+    required String name,
+    required String email,
+    required String phone,
+    required String password,
+  }) async {
+    try {
+      final response = await _dioClient.dio.post(
+        '/admin/users', // New backend endpoint for creating admin users
+        data: {
+          'name': name,
+          'email': email,
+          'phone': phone,
+          'password': password,
+          // Role is fixed to 'Admin' on the backend
+        },
+      );
+
+      if (response.statusCode == 201) { // 201 Created
+        print('Admin user created successfully. Response: ${response.data}');
+      } else {
+        throw Exception('Failed to create admin user. Status code: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        print('Error response data: ${e.response?.data}');
+        print('Error response status: ${e.response?.statusCode}');
+        // Attempt to extract a more user-friendly error message from the backend
+        throw Exception('Failed to create admin user: ${e.response?.data['messages'] ?? e.message}');
+      } else {
+        print('Error sending request: ${e.message}');
+        throw Exception('Error sending request: ${e.message}');
+      }
+    } catch (e) {
+      print('Unexpected error: $e');
+      throw Exception('An unexpected error occurred: $e');
+    }
+  }
 }

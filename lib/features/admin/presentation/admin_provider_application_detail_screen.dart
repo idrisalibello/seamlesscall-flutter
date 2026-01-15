@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:seamlesscall/core/network/dio_client.dart';
 import 'package:seamlesscall/features/admin/data/admin_repository.dart';
 
+
 class AdminProviderApplicationDetailScreen extends StatefulWidget {
   final Map<String, dynamic> application;
 
@@ -11,14 +12,19 @@ class AdminProviderApplicationDetailScreen extends StatefulWidget {
   });
 
   @override
-  State<AdminProviderApplicationDetailScreen> createState() =>
-      _AdminProviderApplicationDetailScreenState();
+  State<AdminProviderApplicationDetailScreen> createState() => _AdminProviderApplicationDetailScreenState();
 }
 
-class _AdminProviderApplicationDetailScreenState
-    extends State<AdminProviderApplicationDetailScreen> {
+class _AdminProviderApplicationDetailScreenState extends State<AdminProviderApplicationDetailScreen> {
   final AdminRepository _adminRepo = AdminRepository();
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    print('AdminProviderApplicationDetailScreen initialized for application ID: ${widget.application['id']}');
+    print('Type of widget.application[\'id\']: ${widget.application['id'].runtimeType}'); // <--- ADDED LOGGING
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,10 +45,7 @@ class _AdminProviderApplicationDetailScreenState
             const SizedBox(height: 20),
 
             _sectionTitle(context, 'Service Details'),
-            _infoRow(
-              'Service Category',
-              widget.application['service_category'],
-            ),
+            _infoRow('Service Category', widget.application['service_category']),
             _infoRow('Applied On', widget.application['submitted_at']),
 
             const SizedBox(height: 20),
@@ -64,9 +67,7 @@ class _AdminProviderApplicationDetailScreenState
                       backgroundColor: Colors.green,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
-                    icon: _isLoading
-                        ? const CircularProgressIndicator()
-                        : const Icon(Icons.check),
+                    icon: _isLoading ? const CircularProgressIndicator() : const Icon(Icons.check),
                     label: const Text('Approve Provider'),
                     onPressed: _isLoading
                         ? null
@@ -80,9 +81,7 @@ class _AdminProviderApplicationDetailScreenState
                       backgroundColor: Colors.red,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
-                    icon: _isLoading
-                        ? const CircularProgressIndicator()
-                        : const Icon(Icons.close),
+                    icon: _isLoading ? const CircularProgressIndicator() : const Icon(Icons.close),
                     label: const Text('Reject Application'),
                     onPressed: _isLoading
                         ? null
@@ -134,20 +133,16 @@ class _AdminProviderApplicationDetailScreenState
     });
 
     try {
-      final userId =
-          widget.application['id'] as int; // Assuming 'id' is the user_id
+      final userId = int.parse(widget.application['id'].toString()); // Safely parse the ID from string to int
+      print('Attempting to ${action} provider application for user ID: $userId (Type: ${userId.runtimeType})'); // Log before API call
       await _adminRepo.approveOrRejectProvider(userId, action);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Provider application ${action}d successfully!'),
-        ),
+        SnackBar(content: Text('Provider application ${action}d successfully!')),
       );
-      Navigator.pop(
-        context,
-        true,
-      ); // Pop with true to indicate a successful action
+      Navigator.pop(context, true); // Pop with true to indicate a successful action
     } catch (e) {
+      print('Error in _handleAction for $action: $e'); // <--- ADDED LOGGING
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to ${action} provider application: $e')),
       );
