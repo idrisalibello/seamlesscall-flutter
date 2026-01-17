@@ -11,7 +11,7 @@ class DashboardApi {
   Future<Map<String, dynamic>> getStats() async {
     log('[DashboardApi] Fetching dashboard stats...');
     try {
-      final response = await _dioClient.dio.get('/dashboard/stats');
+      final response = await _dioClient.dio.get('/api/v1/dashboard/stats');
       log('[DashboardApi] Stats response received: ${response.data}');
       return response.data['data'] as Map<String, dynamic>;
     } on DioError catch (e) {

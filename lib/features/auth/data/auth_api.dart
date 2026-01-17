@@ -5,7 +5,7 @@ class AuthApi {
   final Dio _dio =
       Dio(
           BaseOptions(
-            baseUrl: 'http://10.88.93.59/seamless_call/public/api/v1',
+            baseUrl: 'http://192.168.37.59/seamless_call/api/v1',
             connectTimeout: const Duration(seconds: 60),
             receiveTimeout: const Duration(seconds: 15),
             headers: {
@@ -55,9 +55,7 @@ class AuthApi {
           'location': location,
           'services': services,
         },
-        options: Options(
-          headers: {'Authorization': 'Bearer $token'},
-        ),
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
       if (resp.statusCode == 200) {
@@ -78,7 +76,6 @@ class AuthApi {
       throw Exception('Unexpected error during application: $e');
     }
   }
-
 
   Future<AppUser> register({
     required String name,

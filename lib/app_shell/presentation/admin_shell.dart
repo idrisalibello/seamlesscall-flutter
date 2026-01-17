@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:seamlesscall/features/config/categories_screen.dart';
 
 // dashboard
 import 'package:seamlesscall/features/dashboard/dashboard_screen.dart';
@@ -24,7 +25,6 @@ import 'package:seamlesscall/features/finance/refunds_disputes_screen.dart';
 import 'package:seamlesscall/features/finance/ledger_screen.dart';
 
 // config
-import 'package:seamlesscall/features/config/services_screen.dart';
 import 'package:seamlesscall/features/config/pricing_screen.dart';
 import 'package:seamlesscall/features/config/coverage_screen.dart';
 import 'package:seamlesscall/features/config/availability_screen.dart';
@@ -102,8 +102,8 @@ class _AdminShellState extends State<AdminShell> {
         return const LedgerScreen();
 
       // config
-      case '/admin/config/services':
-        return const ServicesScreen();
+      case '/admin/config/categories':
+        return const CategoriesScreen();
       case '/admin/config/pricing':
         return const PricingScreen();
       case '/admin/config/coverage':
@@ -195,7 +195,7 @@ class _AdminShellState extends State<AdminShell> {
 
       divider(),
       header('Configuration'),
-      item('Services', '/admin/config/services'),
+      item('Categories', '/admin/config/categories'),
       item('Pricing', '/admin/config/pricing'),
       item('Coverage', '/admin/config/coverage'),
       item('Availability', '/admin/config/availability'),
