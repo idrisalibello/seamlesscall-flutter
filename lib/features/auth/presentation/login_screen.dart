@@ -77,11 +77,13 @@ class _LoginScreenState extends State<LoginScreen>
       } else {
         _navigateDashboard(user);
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (!mounted) return;
+      print('Login error: $e');
+      print('Stack trace: $stackTrace');
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      ).showSnackBar(SnackBar(content: Text('Login failed: ${e.toString()}')));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

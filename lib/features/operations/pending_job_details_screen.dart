@@ -5,9 +5,9 @@ import 'package:seamlesscall/features/auth/presentation/auth_providers.dart';
 import 'package:seamlesscall/features/operations/application/operations_providers.dart';
 import '../../common/widgets/main_layout.dart';
 
-class ActiveJobDetailsScreen extends ConsumerWidget {
+class PendingJobDetailsScreen extends ConsumerWidget {
   final int jobId;
-  const ActiveJobDetailsScreen({super.key, required this.jobId});
+  const PendingJobDetailsScreen({super.key, required this.jobId});
 
   void _performJobAction(
     BuildContext context,
@@ -21,7 +21,7 @@ class ActiveJobDetailsScreen extends ConsumerWidget {
           .updateJobStatus(jobId, status);
 
       // Invalidate the provider to force a refresh on the previous screen.
-      ref.invalidate(activeJobsProvider);
+      ref.invalidate(pendingJobsProvider);
 
       if (context.mounted) {
         ScaffoldMessenger.of(
@@ -91,11 +91,7 @@ class ActiveJobDetailsScreen extends ConsumerWidget {
                   spacing: 12,
                   runSpacing: 12,
                   children: [
-                    ElevatedButton(
-                      onPressed: () =>
-                          _performJobAction(context, ref, job.id, 'completed'),
-                      child: const Text('Complete'),
-                    ),
+                    // "Complete" button removed
                     ElevatedButton(
                       onPressed: () {
                         // Implement assign job dialog/screen later if needed
@@ -106,7 +102,7 @@ class ActiveJobDetailsScreen extends ConsumerWidget {
                           ),
                         );
                       },
-                      child: const Text('Re-assign'),
+                      child: const Text('Assign'),
                     ),
                     ElevatedButton(
                       onPressed: () =>

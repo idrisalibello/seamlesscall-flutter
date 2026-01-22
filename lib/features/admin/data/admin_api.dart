@@ -5,7 +5,7 @@ class AdminApi {
   // This is an existing pattern in the app.
   final Dio _dio = Dio(
     BaseOptions(
-      baseUrl: 'http://10.88.93.59/seamless_call/public/api/v1',
+      baseUrl: 'http://10.136.238.59/seamless_call/public/api/v1',
       connectTimeout: const Duration(seconds: 60),
       receiveTimeout: const Duration(seconds: 15),
       headers: {
@@ -19,9 +19,7 @@ class AdminApi {
     try {
       final response = await _dio.get(
         '/admin/provider-applications',
-        options: Options(
-          headers: {'Authorization': 'Bearer $token'},
-        ),
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
       return response.data['data'] as List<dynamic>;
     } on DioError catch (e) {

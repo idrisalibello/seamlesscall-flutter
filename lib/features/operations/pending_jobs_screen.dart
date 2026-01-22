@@ -2,47 +2,50 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:provider/provider.dart';
 import 'package:seamlesscall/features/auth/presentation/auth_providers.dart';
-import 'package:seamlesscall/features/operations/active_job_details_screen.dart';
 import 'package:seamlesscall/features/operations/application/operations_providers.dart';
+import 'package:seamlesscall/features/operations/pending_job_details_screen.dart'; // New details screen for pending jobs
 
-class ActiveJobsScreen extends ConsumerStatefulWidget {
-  const ActiveJobsScreen({super.key});
+class PendingJobsScreen extends ConsumerStatefulWidget {
+  const PendingJobsScreen({super.key});
 
   @override
-  ConsumerState<ActiveJobsScreen> createState() => _ActiveJobsScreenState();
+  ConsumerState<PendingJobsScreen> createState() => _PendingJobsScreenState();
 }
 
-class _ActiveJobsScreenState extends ConsumerState<ActiveJobsScreen> {
+class _PendingJobsScreenState extends ConsumerState<PendingJobsScreen> {
   @override
   void initState() {
     super.initState();
     // Use a post-frame callback to safely access providers.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final role = context.read<AuthProvider>().user?.role;
-      if (role != null) {
-        ref.read(activeJobsProvider.notifier).fetchJobs(role);
+      if (role == 'Admin') {
+        ref.read(pendingJobsProvider.notifier).fetchJobs();
+      } else {
+        // Handle unauthorized access or show a message
+        // For now, we'll just show an empty list
       }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final activeJobsAsync = ref.watch(activeJobsProvider);
+    final pendingJobsAsync = ref.watch(pendingJobsProvider);
 
     return Padding(
       padding: const EdgeInsets.all(20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Active Jobs', style: Theme.of(context).textTheme.titleLarge),
+          Text('Pending Jobs', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 12),
           Expanded(
-            child: activeJobsAsync.when(
+            child: pendingJobsAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (err, stack) => Center(child: Text('Error: $err')),
               data: (jobs) {
                 if (jobs.isEmpty) {
-                  return const Center(child: Text('No active jobs found.'));
+                  return const Center(child: Text('No pending jobs found.'));
                 }
                 return ListView.separated(
                   itemCount: jobs.length,
@@ -60,7 +63,7 @@ class _ActiveJobsScreenState extends ConsumerState<ActiveJobsScreen> {
                             context,
                             MaterialPageRoute(
                               builder: (_) =>
-                                  ActiveJobDetailsScreen(jobId: job.id),
+                                  PendingJobDetailsScreen(jobId: job.id),
                             ),
                           );
                         },
@@ -76,4 +79,3 @@ class _ActiveJobsScreenState extends ConsumerState<ActiveJobsScreen> {
     );
   }
 }
-

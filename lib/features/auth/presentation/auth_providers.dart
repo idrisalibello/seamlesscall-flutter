@@ -1,21 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:seamlesscall/features/auth/domain/appuser.dart';
+import 'package:seamlesscall/features/auth/presentation/login_screen.dart';
 
 class AuthProvider with ChangeNotifier {
   AppUser? _user;
   String? _otp;
   String? _name;
   String? _avatarUrl;
+  final _storage = const FlutterSecureStorage();
 
   AppUser? get user => _user;
+
+  bool hasPermission(String permission) {
+    return _user?.permissions.contains(permission) ?? false;
+  }
 
   void setUser(AppUser user) {
     _user = user;
     notifyListeners();
   }
 
-  void logout() {
+  Future<void> logout(NavigatorState navigatorState) async {
     _user = null;
+    await _storage.delete(key: 'auth_token');
+
+    // Navigate to login screen and remove all other routes
+    navigatorState.pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
+
     notifyListeners();
   }
 

@@ -1,6 +1,9 @@
-// lib/core/network/dio_client.dart
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:provider/provider.dart';
+import 'package:seamlesscall/features/auth/presentation/auth_providers.dart';
+import 'package:seamlesscall/main.dart'; // Import for navigatorKey
 
 class DioClient {
   static final DioClient _instance = DioClient._internal();
@@ -17,7 +20,7 @@ class DioClient {
   DioClient._internal() {
     dio = Dio(
       BaseOptions(
-        baseUrl: 'http://10.219.25.59/seamless_call/',
+        baseUrl: 'http://10.136.238.59/seamless_call/',
         connectTimeout: const Duration(seconds: 60),
         receiveTimeout: const Duration(seconds: 15),
       ),
@@ -36,7 +39,30 @@ class DioClient {
           }
           return handler.next(options);
         },
-        onError: (e, handler) => handler.next(e),
+        onError: (e, handler) {
+          if (e.response?.statusCode == 401) {
+            final responseData = e.response?.data;
+            if (responseData is Map &&
+                responseData['error'] == 'Invalid or expired token') {
+              final context = navigatorKey.currentContext;
+              final navigator = navigatorKey.currentState;
+
+              if (context != null && navigator != null) {
+                // Use a post-frame callback to avoid issues with building widgets
+                // while another build is in progress.
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  Provider.of<AuthProvider>(
+                    context,
+                    listen: false,
+                  ).logout(navigator);
+                });
+              }
+              // It's often best to let the original error propagate so the UI layer
+              // that made the request can still handle the error (e.g., stop a loading spinner).
+            }
+          }
+          return handler.next(e);
+        },
       ),
     );
   }

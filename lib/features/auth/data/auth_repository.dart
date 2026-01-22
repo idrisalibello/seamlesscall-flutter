@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:seamlesscall/features/auth/data/auth_api.dart';
 import 'package:seamlesscall/features/auth/domain/appuser.dart';
@@ -7,6 +8,9 @@ import 'dart:developer';
 class AuthRepository {
   final AuthApi _api;
   final FlutterSecureStorage _storage;
+
+  static const _authTokenKey = 'auth_token';
+  static const _userProfileKey = 'user_profile';
 
   AuthRepository({AuthApi? api, FlutterSecureStorage? storage})
       : _api = api ?? AuthApi(),
@@ -37,8 +41,17 @@ class AuthRepository {
   }) async {
     final result = await _api.login(identifier: identifier, password: password);
     final token = result['token'] as String;
-    final user = AppUser.fromJson(Map<String, dynamic>.from(result['user']));
-    await _storage.write(key: 'auth_token', value: token);
+    
+    // Decode token to get permissions
+    final Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
+    final List<String> permissions = List<String>.from(decodedToken['permissions'] ?? []);
+
+    // Create user and add permissions
+    final user = AppUser.fromJson(Map<String, dynamic>.from(result['user'])).copyWith(permissions: permissions);
+    
+    await _storage.write(key: _authTokenKey, value: token);
+    await _storage.write(key: _userProfileKey, value: jsonEncode(user.toJson()));
+
     return user;
   }
 
@@ -64,11 +77,17 @@ class AuthRepository {
         throw Exception('Invalid user data format from server.');
       }
 
-      final user = AppUser.fromJson(userData);
+      // Decode token to get permissions
+      final Map<String, dynamic> decodedToken = JwtDecoder.decode(authToken);
+      final List<String> permissions = List<String>.from(decodedToken['permissions'] ?? []);
+
+      // Create user and add permissions
+      final user = AppUser.fromJson(userData).copyWith(permissions: permissions);
       log('[AuthRepository] User parsed successfully: ${user.name}');
 
-      await _storage.write(key: 'auth_token', value: authToken);
-      log('[AuthRepository] Auth token securely stored.');
+      await _storage.write(key: _authTokenKey, value: authToken);
+      await _storage.write(key: _userProfileKey, value: jsonEncode(user.toJson()));
+      log('[AuthRepository] Auth token and user profile securely stored.');
 
       return user;
     } catch (e) {
@@ -93,15 +112,17 @@ class AuthRepository {
 
   Future<String> loginWithOtp(String identifier, String otp) async {
     final token = await _api.loginWithOtp(identifier, otp);
-    await _storage.write(key: 'auth_token', value: token);
+    await _storage.write(key: _authTokenKey, value: token);
+    // Note: This flow doesn't store the user profile, it would need to be fetched separately.
     return token;
   }
 
   Future<void> logout() async {
-    await _storage.delete(key: 'auth_token');
+    await _storage.delete(key: _authTokenKey);
+    await _storage.delete(key: _userProfileKey);
   }
 
-  Future<String?> getToken() => _storage.read(key: 'auth_token');
+  Future<String?> getToken() => _storage.read(key: _authTokenKey);
 
   Future<Map<String, dynamic>> applyAsProvider({
     required String companyName,
@@ -122,16 +143,25 @@ class AuthRepository {
 
   Future<AppUser?> getLoggedInUser() async {
     final token = await getToken();
-    if (token == null) return null;
+    final userProfileJson = await _storage.read(key: _userProfileKey);
+
+    if (token == null || userProfileJson == null) {
+      return null;
+    }
 
     if (JwtDecoder.isExpired(token)) {
       await logout();
       return null;
     }
 
-    // This part of the original code seems incomplete.
-    // A full AppUser object cannot be constructed from the token alone
-    // without another API call. Returning null as per original logic.
-    return null;
+    try {
+      final user = AppUser.fromJson(jsonDecode(userProfileJson));
+      return user;
+    } catch (e) {
+      // If profile is corrupted, log out to be safe
+      log('[AuthRepository] Failed to parse stored user profile: $e');
+      await logout();
+      return null;
+    }
   }
 }

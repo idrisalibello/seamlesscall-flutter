@@ -49,8 +49,10 @@ class _OtpScreenState extends State<OtpScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('OTP sent successfully')));
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (!mounted) return;
+      print('Request OTP error: $e');
+      print('Stack trace: $stackTrace');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to request OTP: ${e.toString()}')),
       );
@@ -84,16 +86,26 @@ class _OtpScreenState extends State<OtpScreen> {
             : 'placeholder@example.com', // Best guess
         phone: widget.phone.contains('@') ? 'N/A' : widget.phone, // Best guess
         role: role,
+        status: 'active',
       );
 
       if (!mounted) return;
       _navigateDashboard(user); // Pass AppUser object for consistent navigation
-    } on DioError catch (e) {
+    } on DioError catch (e, stackTrace) {
+      print('DioError during OTP verification: $e');
+      print('Stack trace: $stackTrace');
       final message = e.response?.data['message'] ?? 'OTP verification failed';
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(message)));
+    } catch (e, stackTrace) {
+      print('Generic error during OTP verification: $e');
+      print('Stack trace: $stackTrace');
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('OTP verification failed: ${e.toString()}')));
     } finally {
       if (mounted) setState(() => _verifying = false);
     }

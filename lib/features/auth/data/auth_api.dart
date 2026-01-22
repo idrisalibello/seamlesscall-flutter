@@ -5,7 +5,7 @@ class AuthApi {
   final Dio _dio =
       Dio(
           BaseOptions(
-            baseUrl: 'http://10.219.25.59/seamless_call/api/v1',
+            baseUrl: 'http://10.136.238.59/seamless_call/api/v1',
             connectTimeout: const Duration(seconds: 60),
             receiveTimeout: const Duration(seconds: 15),
             headers: {

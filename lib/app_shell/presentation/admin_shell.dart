@@ -6,6 +6,7 @@ import 'package:seamlesscall/features/dashboard/dashboard_screen.dart';
 
 // operations
 import 'package:seamlesscall/features/operations/active_jobs_screen.dart';
+import 'package:seamlesscall/features/operations/pending_jobs_screen.dart';
 import 'package:seamlesscall/features/operations/scheduled_jobs_screen.dart';
 import 'package:seamlesscall/features/operations/cancelled_jobs_screen.dart';
 import 'package:seamlesscall/features/operations/dispatch_center_screen.dart';
@@ -45,6 +46,7 @@ import 'package:seamlesscall/features/system/feature_toggles_screen.dart';
 import 'package:seamlesscall/features/system/maintenance_mode_screen.dart';
 import 'package:seamlesscall/features/admin/presentation/admin_provider_applications.dart';
 import 'package:seamlesscall/features/admin/presentation/create_admin_user_screen.dart';
+import 'package:seamlesscall/features/system/presentation/users_list_screen.dart';
 
 class AdminShell extends StatefulWidget {
   const AdminShell({super.key});
@@ -136,6 +138,9 @@ class _AdminShellState extends State<AdminShell> {
 
       case '/admin/system/create-admin':
         return const CreateAdminUserScreen();
+      
+      case '/admin/system/users':
+        return const UsersListScreen();
 
       case '/admin/system/roles':
         return const RolesPermissionsScreen();
@@ -213,6 +218,7 @@ class _AdminShellState extends State<AdminShell> {
       //
       divider(),
       header('System'),
+      item('Manage Users', '/admin/system/users'),
       item('Create Admin User', '/admin/system/create-admin'),
       item('Roles & Permissions', '/admin/system/roles'),
       item('Integrations', '/admin/system/integrations'),
