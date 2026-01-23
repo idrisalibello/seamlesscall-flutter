@@ -1,106 +1,211 @@
-# Seamless Call — API Contract (Flutter Consumption View) (v1.3)
+# Seamless Call — API Contract (Flutter Consumption View) (v1.5)
 
-Backend repo is the source of truth. This file mirrors confirmed routes.
+Backend repository is the source of truth.  
+This file mirrors **all confirmed backend routes** in a Flutter-friendly, lossless format.
 
 ---
 
 ## Base URL (Flutter)
-Defined in `lib/core/network/dio_client.dart`:
+Defined in:
+- `lib/core/network/dio_client.dart`
+
+Current value:
 - `http://10.186.11.59/seamless_call/`
 
-All endpoint paths below are appended to that base URL.
+All endpoint paths below are appended to this base URL.
 
 ---
 
 ## Authentication
 - Scheme: `Authorization: Bearer <token>`
-- Storage: `FlutterSecureStorage`, key `auth_token`
-- Injection: `DioClient` request interceptor attaches Bearer token automatically when available.
-- On HTTP 401: `DioClient` normalizes to marker error `AUTH_EXPIRED`.
+- Token storage: `FlutterSecureStorage`
+- Storage key: `auth_token`
+- Token injection: automatically attached by `DioClient`
+- Auth failure behavior:
+  - Backend returns HTTP 401
+  - `DioClient` converts this to marker error: `AUTH_EXPIRED`
+  - UI/Auth layer handles logout and navigation
 
 ---
 
-## Confirmed endpoints
+## API PREFIXES (IMPORTANT)
+All APIs are module-scoped:
 
-### Auth (`/api/v1`)
-| Purpose | Method | Path | Auth? |
-|---|---:|---|---:|
-| Register | POST | `/api/v1/register` | No |
-| Login (password) | POST | `/api/v1/login` | No |
-| Request login OTP | POST | `/api/v1/auth/otp/request` | No |
-| Login with OTP | POST | `/api/v1/auth/otp/login` | No |
-| Apply as Provider | POST | `/api/v1/auth/apply-as-provider` | Yes |
+- Auth: `/api/v1`
+- Dashboard: `/api/v1/dashboard`
+- Admin: `/api/v1/admin`
+- Operations: `/api/v1/operations`
+- System: `/api/v1/system`
 
-### Admin (`/api/v1/admin`) — all require auth
-| Purpose | Method | Path |
-|---|---:|---|
-| List provider applications | GET | `/api/v1/admin/provider-applications` |
-| Approve/reject provider application | POST | `/api/v1/admin/provider-applications/status` |
-| Create admin user | POST | `/api/v1/admin/users` |
-| Get customers | GET | `/api/v1/admin/customers` |
-| Get providers | GET | `/api/v1/admin/providers` |
-| Get user details | GET | `/api/v1/admin/users/{id}` |
-| Get user ledger | GET | `/api/v1/admin/users/{id}/ledger` |
-| Get user refunds | GET | `/api/v1/admin/users/{id}/refunds` |
-| Get user activity log | GET | `/api/v1/admin/users/{id}/activity` |
-| Get provider earnings | GET | `/api/v1/admin/providers/{id}/earnings` |
-| Get provider payouts | GET | `/api/v1/admin/providers/{id}/payouts` |
+Never omit `/api/v1`.
 
-#### Admin — Categories & Services
-| Purpose | Method | Path |
-|---|---:|---|
-| List services by category | GET | `/api/v1/admin/categories/{categoryId}/services` |
-| Create service in category | POST | `/api/v1/admin/categories/{categoryId}/services` |
-| Update service | PUT | `/api/v1/admin/services/{serviceId}` |
-| Delete service | DELETE | `/api/v1/admin/services/{serviceId}` |
+---
 
-#### Admin — Categories resource routes (expected)
+## AUTH MODULE (`/api/v1`)
+No authentication required unless stated.
+
+- `POST /api/v1/register`
+  - Register a new user
+
+- `POST /api/v1/login`
+  - Login using email/phone + password
+
+- `POST /api/v1/auth/otp/request`
+  - Request OTP for login
+
+- `POST /api/v1/auth/otp/login`
+  - Login using OTP
+
+- `POST /api/v1/auth/apply-as-provider`
+  - Apply to become a provider
+  - Requires authentication
+
+---
+
+## DASHBOARD MODULE (`/api/v1/dashboard`)
+All routes require authentication.
+
+- `GET /api/v1/dashboard/stats`
+  - Returns dashboard statistics for authenticated user
+  - Used by admin/dashboard screens
+
+---
+
+## ADMIN MODULE (`/api/v1/admin`)
+All routes require authentication.
+
+### Provider onboarding
+- `GET /api/v1/admin/provider-applications`
+  - List pending provider applications
+
+- `POST /api/v1/admin/provider-applications/status`
+  - Approve or reject provider application
+
+### Admin users
+- `POST /api/v1/admin/users`
+  - Create an admin user
+
+### Customers & providers
+- `GET /api/v1/admin/customers`
+  - List customers
+
+- `GET /api/v1/admin/providers`
+  - List providers
+
+### User details
+- `GET /api/v1/admin/users/{id}`
+  - Get user profile
+
+- `GET /api/v1/admin/users/{id}/ledger`
+  - Get user ledger
+
+- `GET /api/v1/admin/users/{id}/refunds`
+  - Get user refunds
+
+- `GET /api/v1/admin/users/{id}/activity`
+  - Get user activity log
+
+### Provider finance
+- `GET /api/v1/admin/providers/{id}/earnings`
+  - Get provider earnings
+
+- `GET /api/v1/admin/providers/{id}/payouts`
+  - Get provider payouts
+
+### Categories
 - `GET /api/v1/admin/categories`
 - `GET /api/v1/admin/categories/{id}`
 - `POST /api/v1/admin/categories`
-- `PUT|PATCH /api/v1/admin/categories/{id}`
+- `PUT /api/v1/admin/categories/{id}`
+- `PATCH /api/v1/admin/categories/{id}`
 - `DELETE /api/v1/admin/categories/{id}`
 
-#### Admin — User management (roles & permissions)
-| Purpose | Method | Path |
-|---|---:|---|
-| List users | GET | `/api/v1/admin/users` |
-| Update user | PUT | `/api/v1/admin/users/{id}` |
-| Get user roles | GET | `/api/v1/admin/users/{id}/roles` |
-| Update user roles | PUT | `/api/v1/admin/users/{id}/roles` |
+### Services
+- `GET /api/v1/admin/categories/{categoryId}/services`
+  - List services in category
 
-### Operations (`/api/v1/operations`) — all require auth
-#### Provider routes
-| Purpose | Method | Path |
-|---|---:|---|
-| Get provider job details | GET | `/api/v1/operations/provider/jobs/{jobId}` |
-| Update provider job status | PUT | `/api/v1/operations/provider/jobs/{jobId}/status` |
-| Get provider active jobs | GET | `/api/v1/operations/provider/jobs` |
+- `POST /api/v1/admin/categories/{categoryId}/services`
+  - Create service in category
 
-#### Admin routes
-| Purpose | Method | Path |
-|---|---:|---|
-| Get pending jobs | GET | `/api/v1/operations/admin/jobs/pending` |
-| Get job details | GET | `/api/v1/operations/admin/jobs/{jobId}` |
-| Assign provider to job | POST | `/api/v1/operations/admin/jobs/{jobId}/assign` |
-| Get available providers | GET | `/api/v1/operations/admin/providers/available` |
+- `PUT /api/v1/admin/services/{serviceId}`
+  - Update service
 
-### System (`/api/v1/system`) — all require auth
-#### Roles
-| Purpose | Method | Path |
-|---|---:|---|
-| Get roles | GET | `/api/v1/system/roles` |
-| Create role | POST | `/api/v1/system/roles` |
+- `DELETE /api/v1/admin/services/{serviceId}`
+  - Delete service
 
-#### Permissions
-| Purpose | Method | Path |
-|---|---:|---|
-| Get permissions | GET | `/api/v1/system/permissions` |
-| Get role permissions | GET | `/api/v1/system/roles/{roleId}/permissions` |
-| Update role permissions | PUT | `/api/v1/system/roles/{roleId}/permissions` |
+### Roles & permissions (user management)
+- `GET /api/v1/admin/users`
+  - List all users
+
+- `PUT /api/v1/admin/users/{id}`
+  - Update user details
+
+- `GET /api/v1/admin/users/{id}/roles`
+  - Get user roles
+
+- `PUT /api/v1/admin/users/{id}/roles`
+  - Update user roles
 
 ---
 
-## Notes / Known pitfalls
-- Keep hosting mode consistent (`/public` vs repo-root DocumentRoot) to avoid 404s.
-- Flutter Web requires correct CORS + OPTIONS preflight support.
+## OPERATIONS MODULE (`/api/v1/operations`)
+All routes require authentication.
+
+### Provider operations
+- `GET /api/v1/operations/provider/jobs`
+  - Get active jobs for provider
+
+- `GET /api/v1/operations/provider/jobs/{jobId}`
+  - Get job details
+
+- `PUT /api/v1/operations/provider/jobs/{jobId}/status`
+  - Update job status
+
+### Admin operations
+- `GET /api/v1/operations/admin/jobs`
+  - Get all active jobs
+
+- `GET /api/v1/operations/admin/jobs/pending`
+  - Get pending jobs
+
+- `GET /api/v1/operations/admin/jobs/{jobId}`
+  - Get job details
+
+- `POST /api/v1/operations/admin/jobs/{jobId}/assign`
+  - Assign provider to job
+
+- `GET /api/v1/operations/admin/providers/available`
+  - Get available providers
+
+---
+
+## SYSTEM MODULE (`/api/v1/system`)
+All routes require authentication.
+
+### Roles
+- `GET /api/v1/system/roles`
+  - List roles
+
+- `POST /api/v1/system/roles`
+  - Create role
+
+### Permissions
+- `GET /api/v1/system/permissions`
+  - List permissions
+
+- `GET /api/v1/system/roles/{roleId}/permissions`
+  - Get permissions assigned to role
+
+- `PUT /api/v1/system/roles/{roleId}/permissions`
+  - Update role permissions
+
+---
+
+## Known pitfalls (do not ignore)
+- Base URL **must not** include `/api/v1`
+- `/api/v1` is part of the path, not the base
+- Flutter Web requires:
+  - CORS enabled
+  - OPTIONS preflight allowed
+  - `Authorization` header allowed
+- Do not assume routes — always refer to this file
