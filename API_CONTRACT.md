@@ -3,34 +3,32 @@
 This file describes the backend API **as consumed by the Flutter app**.
 Backend repo remains the source of truth; this document must match it.
 
-## Environments
-- Local (Laragon): TBD
-- LAN (device testing): TBD
-- Production: TBD
+## Environment / Base URL (current)
+- Base URL is currently hard-coded in `lib/core/network/dio_client.dart`:
+  - `http://10.186.11.59/seamless_call/`
+- Route prefix (`/api/v1`) must be included in endpoint paths where applicable.
 
 ## Authentication
-- Token type: Bearer (assumed from existing discussions)
-- Token storage: Flutter Secure Storage (observed dependency in past code)
+- Scheme: `Authorization: Bearer <token>`
+- Storage: `FlutterSecureStorage`, key `auth_token`
+- Injection: `DioClient` request interceptor attaches Bearer token automatically when available.
 
-### Auth endpoints
-| Purpose | Method | Path | Auth? | Request | Success Response | Error Response |
-|---|---:|---|---:|---|---|---|
-| Login | POST | `/api/v1/login` | No | `{ email_or_phone, password }` | `{ data: { token, user } }` (TBD) | `{ message, errors? }` (TBD) |
-| Logout | POST | `/api/v1/logout` | Yes | none | TBD | TBD |
+### Auth failure handling
+- Backend returns HTTP 401 for expired/invalid tokens.
+- Flutter normalizes 401 to error marker: `AUTH_EXPIRED`.
+- UI/auth layer decides how to logout and navigate.
 
-## Admin
-(Add endpoints as implemented)
+## Endpoints (populate as you implement)
+| Domain | Purpose | Method | Path | Auth? | Request | Success Response | Error Response |
+|---|---|---:|---|---:|---|---|---|
+| Auth | Login | POST | `/api/v1/login` | No | `{ email_or_phone, password }` | TBD | TBD |
+| Auth | Logout | POST | `/api/v1/logout` | Yes | none | TBD | TBD |
 
-## Provider
-(Add endpoints as implemented)
-
-## Customer
-(Add endpoints as implemented)
-
-## Conventions
-- Response envelope: TBD (often `{ status, message, data }` or `{ data: ... }`)
-- Error envelope: TBD
+## Response conventions (TBD)
+- Envelope shape: TBD (e.g., `{ data, message }` or `{ status, data }`)
+- Error shape: TBD
 - Pagination: TBD
 
 ## Notes / Known pitfalls
-- Base URL must align with CI4 vhost (`/public` vs non-`/public`) and route prefix (`/api/v1`).
+- Avoid mixing `/public` and non-`/public` base URLs across environments.
+- Keep `/api/v1` consistent across all endpoints.
