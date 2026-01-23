@@ -1,11 +1,10 @@
-# Seamless Call — API Contract (Flutter Consumption View) (v1.1)
+# Seamless Call — API Contract (Flutter Consumption View) (v1.2)
 
-This file describes the backend API **as consumed by the Flutter app**.
-Backend repo remains the source of truth; this document must match it.
+Backend repo is the source of truth. This file mirrors confirmed routes.
 
 ---
 
-## Base URL (current in Flutter)
+## Base URL (Flutter)
 Defined in `lib/core/network/dio_client.dart`:
 - `http://10.186.11.59/seamless_call/`
 
@@ -17,11 +16,7 @@ All endpoint paths below are appended to that base URL.
 - Scheme: `Authorization: Bearer <token>`
 - Storage: `FlutterSecureStorage`, key `auth_token`
 - Injection: `DioClient` request interceptor attaches Bearer token automatically when available.
-
-### Auth failure handling (Flutter)
-- Backend returns HTTP 401 for expired/invalid tokens.
-- `DioClient` normalizes 401 to marker error: `AUTH_EXPIRED`.
-- UI/auth layer decides logout + navigation.
+- On HTTP 401: `DioClient` normalizes to marker error `AUTH_EXPIRED`.
 
 ---
 
@@ -60,7 +55,6 @@ All endpoint paths below are appended to that base URL.
 | Delete service | DELETE | `/api/v1/admin/services/{serviceId}` |
 
 #### Admin — Categories resource routes (expected)
-Resource: `categories` under `/api/v1/admin`
 - `GET /api/v1/admin/categories`
 - `GET /api/v1/admin/categories/{id}`
 - `POST /api/v1/admin/categories`
@@ -75,9 +69,24 @@ Resource: `categories` under `/api/v1/admin`
 | Get user roles | GET | `/api/v1/admin/users/{id}/roles` |
 | Update user roles | PUT | `/api/v1/admin/users/{id}/roles` |
 
+### Operations (`/api/v1/operations`) — all require auth
+#### Provider routes
+| Purpose | Method | Path |
+|---|---:|---|
+| Get provider job details | GET | `/api/v1/operations/provider/jobs/{jobId}` |
+| Update provider job status | PUT | `/api/v1/operations/provider/jobs/{jobId}/status` |
+| Get provider active jobs | GET | `/api/v1/operations/provider/jobs` |
+
+#### Admin routes
+| Purpose | Method | Path |
+|---|---:|---|
+| Get pending jobs | GET | `/api/v1/operations/admin/jobs/pending` |
+| Get job details | GET | `/api/v1/operations/admin/jobs/{jobId}` |
+| Assign provider to job | POST | `/api/v1/operations/admin/jobs/{jobId}/assign` |
+| Get available providers | GET | `/api/v1/operations/admin/providers/available` |
+
 ---
 
 ## Notes / Known pitfalls
 - Keep hosting mode consistent (`/public` vs repo-root DocumentRoot) to avoid 404s.
 - Flutter Web requires correct CORS + OPTIONS preflight support.
-- Always include `/api/v1` in paths (module-defined).
