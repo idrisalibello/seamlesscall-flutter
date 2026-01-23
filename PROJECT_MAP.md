@@ -16,7 +16,11 @@ This repo is organized as:
 ## Key folders
 
 ### `lib/core/`
-- `lib/core/network/` — networking stack (DioClient/interceptors usually live here)
+- `lib/core/network/dio_client.dart`
+  - Single source of truth for all HTTP requests
+  - Owns Dio instance, interceptors, headers, and auth token injection
+  - All repositories MUST use this client (no direct Dio creation elsewhere)
+
 
 ### `lib/common/`
 - `lib/common/constants/` — themes, base URLs, fixed values
