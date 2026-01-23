@@ -1,4 +1,4 @@
-# Seamless Call — API Contract (Flutter Consumption View) (v1.2)
+# Seamless Call — API Contract (Flutter Consumption View) (v1.3)
 
 Backend repo is the source of truth. This file mirrors confirmed routes.
 
@@ -84,6 +84,20 @@ All endpoint paths below are appended to that base URL.
 | Get job details | GET | `/api/v1/operations/admin/jobs/{jobId}` |
 | Assign provider to job | POST | `/api/v1/operations/admin/jobs/{jobId}/assign` |
 | Get available providers | GET | `/api/v1/operations/admin/providers/available` |
+
+### System (`/api/v1/system`) — all require auth
+#### Roles
+| Purpose | Method | Path |
+|---|---:|---|
+| Get roles | GET | `/api/v1/system/roles` |
+| Create role | POST | `/api/v1/system/roles` |
+
+#### Permissions
+| Purpose | Method | Path |
+|---|---:|---|
+| Get permissions | GET | `/api/v1/system/permissions` |
+| Get role permissions | GET | `/api/v1/system/roles/{roleId}/permissions` |
+| Update role permissions | PUT | `/api/v1/system/roles/{roleId}/permissions` |
 
 ---
 
