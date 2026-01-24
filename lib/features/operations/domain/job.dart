@@ -33,6 +33,13 @@ class Job extends Equatable {
   final DateTime? cancelledAt;
   @JsonKey(name: 'assigned_at')
   final DateTime? assignedAt;
+  @JsonKey(name: 'escalation_reason')
+  final String? escalationReason;
+  @JsonKey(name: 'escalated_at')
+  final DateTime? escalatedAt;
+  @JsonKey(name: 'escalated_by')
+  final int? escalatedBy;
+
   @JsonKey(name: 'created_at')
   final DateTime createdAt;
   @JsonKey(name: 'updated_at')
@@ -55,6 +62,10 @@ class Job extends Equatable {
     this.completedAt,
     this.cancelledAt,
     this.assignedAt,
+    this.escalationReason,
+    this.escalatedAt,
+    this.escalatedBy,
+
     required this.createdAt,
     required this.updatedAt,
   });
@@ -65,23 +76,26 @@ class Job extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        customerId,
-        customerName,
-        customerPhone,
-        providerId,
-        providerName,
-        providerPhone,
-        serviceId,
-        serviceName,
-        title,
-        description,
-        status,
-        scheduledTime,
-        completedAt,
-        cancelledAt,
-        assignedAt,
-        createdAt,
-        updatedAt,
-      ];
+    id,
+    customerId,
+    customerName,
+    customerPhone,
+    providerId,
+    providerName,
+    providerPhone,
+    serviceId,
+    serviceName,
+    title,
+    description,
+    status,
+    scheduledTime,
+    completedAt,
+    cancelledAt,
+    assignedAt,
+    assignedAt,
+    createdAt,
+    updatedAt,
+    createdAt,
+    updatedAt,
+  ];
 }

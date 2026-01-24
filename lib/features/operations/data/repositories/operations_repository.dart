@@ -60,6 +60,18 @@ class OperationsRepository {
     }
   }
 
+  Future<bool> escalateJob(int jobId, String reason) async {
+    try {
+      await _dio.put(
+        '/api/v1/operations/provider/jobs/$jobId/status',
+        data: {'status': 'escalated', 'escalation_reason': reason},
+      );
+      return true;
+    } on DioException {
+      rethrow;
+    }
+  }
+
   Future<bool> assignJob(int jobId, int providerId) async {
     try {
       await _dio.post(

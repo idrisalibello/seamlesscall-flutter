@@ -29,6 +29,11 @@ Job _$JobFromJson(Map<String, dynamic> json) => Job(
   assignedAt: json['assigned_at'] == null
       ? null
       : DateTime.parse(json['assigned_at'] as String),
+  escalationReason: json['escalation_reason'] as String?,
+  escalatedAt: json['escalated_at'] == null
+      ? null
+      : DateTime.parse(json['escalated_at'] as String),
+  escalatedBy: (json['escalated_by'] as num?)?.toInt(),
   createdAt: DateTime.parse(json['created_at'] as String),
   updatedAt: DateTime.parse(json['updated_at'] as String),
 );
@@ -50,6 +55,9 @@ Map<String, dynamic> _$JobToJson(Job instance) => <String, dynamic>{
   'completed_at': instance.completedAt?.toIso8601String(),
   'cancelled_at': instance.cancelledAt?.toIso8601String(),
   'assigned_at': instance.assignedAt?.toIso8601String(),
+  'escalation_reason': instance.escalationReason,
+  'escalated_at': instance.escalatedAt?.toIso8601String(),
+  'escalated_by': instance.escalatedBy,
   'created_at': instance.createdAt.toIso8601String(),
   'updated_at': instance.updatedAt.toIso8601String(),
 };

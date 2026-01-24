@@ -35,3 +35,7 @@ CI4: https://raw.githubusercontent.com/idrisalibello/seamlesscall-CI4/refs/heads
 14.https://raw.githubusercontent.com/idrisalibello/seamlesscall-flutter/refs/heads/main/lib/features/operations/pending_jobs_screen.dart
 
 15.https://raw.githubusercontent.com/idrisalibello/seamlesscall-flutter/refs/heads/main/lib/features/operations/pending_job_details_screen.dart
+
+16.https://raw.githubusercontent.com/idrisalibello/seamlesscall-flutter/refs/heads/main/lib/features/operations/scheduled_jobs_screen.dart
+
+17. https://raw.githubusercontent.com/idrisalibello/seamlesscall-flutter/refs/heads/main/lib/features/operations/scheduled_job_details_screen.dart

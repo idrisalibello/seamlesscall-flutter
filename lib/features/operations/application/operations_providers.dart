@@ -53,7 +53,7 @@ class PendingJobsNotifier extends StateNotifier<AsyncValue<List<Job>>> {
 final pendingJobsProvider =
     StateNotifierProvider<PendingJobsNotifier, AsyncValue<List<Job>>>((ref) {
       final repository = ref.watch(operationsRepositoryProvider);
-      return PendingJobsNotifier(repository);
+      return PendingJobsNotifier(repository)..fetchJobs(); // <-- important
     });
 
 final availableProvidersProvider = FutureProvider<List<Map<String, dynamic>>>((
