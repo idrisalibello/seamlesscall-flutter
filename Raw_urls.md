@@ -1,6 +1,11 @@
 links
 repos:https://github.com/idrisalibello/seamlesscall-flutter and https://github.com/idrisalibello/seamlesscall-CI4
 
+md files:
+Flutter:https://raw.githubusercontent.com/idrisalibello/seamlesscall-flutter/refs/heads/main/API_CONTRACT.md    and https://raw.githubusercontent.com/idrisalibello/seamlesscall-flutter/refs/heads/main/PROJECT_MAP.md
+
+CI4: https://raw.githubusercontent.com/idrisalibello/seamlesscall-CI4/refs/heads/main/API_CONTRACT.md and https://raw.githubusercontent.com/idrisalibello/seamlesscall-CI4/refs/heads/main/PROJECT_MAP.md
+
 
 
 1. https://raw.githubusercontent.com/idrisalibello/seamlesscall-CI4/refs/heads/main/app/Modules/Operations/Config/Routes.php
