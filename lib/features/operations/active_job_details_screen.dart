@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:seamlesscall/features/operations/application/operations_providers.dart';
 import 'package:seamlesscall/features/auth/presentation/auth_providers.dart';
 import 'package:seamlesscall/features/operations/application/operations_providers.dart';
 import '../../common/widgets/main_layout.dart';
@@ -19,8 +20,9 @@ class ActiveJobDetailsScreen extends ConsumerWidget {
           .read(operationsRepositoryProvider)
           .updateJobStatus(jobId, status);
 
-      // Invalidate the provider to force a refresh on the previous screen.
-      ref.invalidate(activeJobsProvider);
+      final role = ref.read(authProvider).user?.role ?? 'Provider';
+
+      await ref.read(activeJobsProvider.notifier).fetchJobs(role);
 
       if (context.mounted) {
         ScaffoldMessenger.of(
@@ -107,11 +109,11 @@ class ActiveJobDetailsScreen extends ConsumerWidget {
                       },
                       child: const Text('Re-assign'),
                     ),
-                    ElevatedButton(
-                      onPressed: () =>
-                          _performJobAction(context, ref, job.id, 'escalated'),
-                      child: const Text('Escalate'),
-                    ),
+                    // ElevatedButton(
+                    //   onPressed: () =>
+                    //       _performJobAction(context, ref, job.id, 'escalated'),
+                    //   child: const Text('Escalate'),
+                    // ),
                     ElevatedButton(
                       onPressed: () =>
                           _performJobAction(context, ref, job.id, 'cancelled'),
