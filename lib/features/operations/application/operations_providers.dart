@@ -59,3 +59,10 @@ final pendingJobsProvider =
       final repository = ref.watch(operationsRepositoryProvider);
       return PendingJobsNotifier(repository);
     });
+
+// 5. FutureProvider for Available Providers List
+final availableProvidersProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final repository = ref.watch(operationsRepositoryProvider);
+  return repository.getAvailableProviders();
+});
+

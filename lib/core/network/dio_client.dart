@@ -1,18 +1,17 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:provider/provider.dart';
-import 'package:seamlesscall/features/auth/presentation/auth_providers.dart';
-import 'package:seamlesscall/main.dart'; // Import for navigatorKey
 
 class DioClient {
   static final DioClient _instance = DioClient._internal();
   factory DioClient() => _instance;
 
   late final Dio dio;
-  final storage = const FlutterSecureStorage();
+  final FlutterSecureStorage storage = const FlutterSecureStorage();
 
-  // Add this method to set a token for testing purposes
+  // NEW: App-layer callback for auth expiry (wired in main.dart)
+  static void Function()? onAuthExpired;
+
+  // Optional testing helper
   void setTokenForTest(String token) {
     dio.options.headers['Authorization'] = 'Bearer $token';
   }
@@ -20,46 +19,35 @@ class DioClient {
   DioClient._internal() {
     dio = Dio(
       BaseOptions(
-        baseUrl: 'http://10.136.238.59/seamless_call/',
+        baseUrl: 'http://10.186.11.59/seamless_call/',
         connectTimeout: const Duration(seconds: 60),
         receiveTimeout: const Duration(seconds: 15),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
       ),
     );
 
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          // If a token is already set for testing, don't try to read from storage
+          // If a token is already set for testing or per-request, keep it.
           if (options.headers.containsKey('Authorization')) {
             return handler.next(options);
           }
+
           final token = await storage.read(key: 'auth_token');
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
+
           return handler.next(options);
         },
         onError: (e, handler) {
           if (e.response?.statusCode == 401) {
-            final responseData = e.response?.data;
-            if (responseData is Map &&
-                responseData['error'] == 'Invalid or expired token') {
-              final context = navigatorKey.currentContext;
-              final navigator = navigatorKey.currentState;
-
-              if (context != null && navigator != null) {
-                // Use a post-frame callback to avoid issues with building widgets
-                // while another build is in progress.
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  Provider.of<AuthProvider>(
-                    context,
-                    listen: false,
-                  ).logout(navigator);
-                });
-              }
-              // It's often best to let the original error propagate so the UI layer
-              // that made the request can still handle the error (e.g., stop a loading spinner).
-            }
+            // Do NOT navigate/logout here. Signal app layer instead.
+            onAuthExpired?.call();
           }
           return handler.next(e);
         },

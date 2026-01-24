@@ -44,14 +44,22 @@ class _OtpScreenState extends State<OtpScreen> {
         formattedPhone = '+$formattedPhone';
       }
 
+      print('Attempting to request OTP for identifier: $formattedPhone');
       await _authRepository.requestLoginOtp(formattedPhone);
+      print('OTP request successful for $formattedPhone');
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('OTP sent successfully')));
+    } on DioError catch (e) {
+      if (!mounted) return;
+      print('DioError during OTP request: ${e.response?.statusCode} - ${e.response?.data}');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to request OTP: ${e.response?.data['message'] ?? e.toString()}')),
+      );
     } catch (e, stackTrace) {
       if (!mounted) return;
-      print('Request OTP error: $e');
+      print('Generic error during OTP request: $e');
       print('Stack trace: $stackTrace');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to request OTP: ${e.toString()}')),
@@ -66,10 +74,12 @@ class _OtpScreenState extends State<OtpScreen> {
 
     try {
       // Use AuthRepository for loginWithOtp
+      print('Attempting to verify OTP for identifier: ${widget.phone} with OTP: ${_otpController.text.trim()}');
       final token = await _authRepository.loginWithOtp(
         widget.phone,
         _otpController.text.trim(),
       );
+      print('OTP verification successful. Received token: $token');
 
       // Decode JWT to get user role (AuthRepository handles token storage)
       Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
@@ -91,9 +101,8 @@ class _OtpScreenState extends State<OtpScreen> {
 
       if (!mounted) return;
       _navigateDashboard(user); // Pass AppUser object for consistent navigation
-    } on DioError catch (e, stackTrace) {
-      print('DioError during OTP verification: $e');
-      print('Stack trace: $stackTrace');
+    } on DioError catch (e) {
+      print('DioError during OTP verification: ${e.response?.statusCode} - ${e.response?.data}');
       final message = e.response?.data['message'] ?? 'OTP verification failed';
       if (!mounted) return;
       ScaffoldMessenger.of(

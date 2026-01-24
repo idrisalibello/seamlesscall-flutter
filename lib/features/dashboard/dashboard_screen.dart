@@ -1,18 +1,18 @@
 import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:seamlesscall/features/auth/presentation/auth_providers.dart';
 import 'package:seamlesscall/features/dashboard/data/dashboard_repository.dart';
 
-class DashboardScreen extends StatefulWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   late DashboardRepository _dashboardRepository;
   int? _customerCount;
   int? _providerCount;
@@ -51,8 +51,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     final theme = Theme.of(context);
-    final authProvider = context.watch<AuthProvider>();
-    final userName = authProvider.user?.name ?? 'User';
+    final authState = ref.watch(authProvider);
+    final userName = authState.user?.name ?? 'User';
 
     // Adjust grid for screen size
     final crossAxisCount = width > 1200
@@ -165,8 +165,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         : 35.0; // responsive chart height
 
     // Determine if the card is loading
-    final bool isLoading = (metric.title == "Customers" && _customerCount == null) ||
-                           (metric.title == "Handymen" && _providerCount == null);
+    final bool isLoading =
+        (metric.title == "Customers" && _customerCount == null) ||
+        (metric.title == "Handymen" && _providerCount == null);
 
     return GestureDetector(
       onTap: () {
@@ -245,6 +246,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
   }
+
   Widget _trendIndicator(int trend) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,

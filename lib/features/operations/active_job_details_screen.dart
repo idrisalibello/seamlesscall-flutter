@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:provider/provider.dart';
 import 'package:seamlesscall/features/auth/presentation/auth_providers.dart';
 import 'package:seamlesscall/features/operations/application/operations_providers.dart';
 import '../../common/widgets/main_layout.dart';
@@ -40,7 +39,7 @@ class ActiveJobDetailsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final role = context.watch<AuthProvider>().user?.role;
+    final role = ref.watch(authProvider).user?.role;
     if (role == null) {
       // Handle the case where the role is not available
       return const Scaffold(

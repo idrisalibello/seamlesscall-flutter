@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:provider/provider.dart';
 import 'package:seamlesscall/features/auth/presentation/auth_providers.dart';
 import 'package:seamlesscall/features/operations/application/operations_providers.dart';
 import '../../common/widgets/main_layout.dart';
@@ -8,6 +7,133 @@ import '../../common/widgets/main_layout.dart';
 class PendingJobDetailsScreen extends ConsumerWidget {
   final int jobId;
   const PendingJobDetailsScreen({super.key, required this.jobId});
+
+  void _showAssignJobDialog(
+    BuildContext context,
+    WidgetRef ref,
+    int jobId,
+  ) async {
+    final availableProvidersAsync = ref.read(availableProvidersProvider);
+
+    availableProvidersAsync.when(
+      loading: () {
+        // Show a loading indicator
+        showDialog(
+          context: context,
+          builder: (ctx) => const AlertDialog(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Loading providers...'),
+              ],
+            ),
+          ),
+        );
+      },
+      error: (err, stack) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to load providers: $err')),
+          );
+        }
+      },
+      data: (providers) {
+        Navigator.of(
+          context,
+        ).popUntil((route) => route.isCurrent); // Dismiss loading dialog
+        int? selectedProviderId;
+
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Assign Job to Provider'),
+            content: StatefulBuilder(
+              builder: (BuildContext context, StateSetter setState) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (providers.isEmpty)
+                      const Text('No available providers found.')
+                    else
+                      DropdownButtonFormField<int>(
+                        value: selectedProviderId,
+                        hint: const Text('Select Provider'),
+                        items: providers.map((provider) {
+                          return DropdownMenuItem<int>(
+                            value: provider['id'] as int,
+                            child: Text(provider['name'] as String),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedProviderId = value;
+                          });
+                        },
+                      ),
+                  ],
+                );
+              },
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: selectedProviderId == null
+                    ? null
+                    : () async {
+                        Navigator.of(ctx).pop(); // Dismiss dialog
+                        try {
+                          await ref
+                              .read(operationsRepositoryProvider)
+                              .assignJob(jobId, selectedProviderId!);
+
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Job assigned successfully!'),
+                              ),
+                            );
+                            ref.invalidate(pendingJobsProvider);
+                            final role = ref.read(authProvider).user?.role;
+                            if (role != null) {
+                              ref.invalidate(
+                                jobDetailsProvider((role: role, jobId: jobId)),
+                              );
+                            }
+
+                            ref.invalidate(
+                              jobDetailsProvider((
+                                role: ref.read(authProvider).user!.role!,
+                                jobId: jobId,
+                              )),
+                            );
+
+                            Navigator.of(
+                              context,
+                            ).pop(); // Go back to pending jobs list
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Failed to assign job: $e'),
+                              ),
+                            );
+                          }
+                        }
+                      },
+                child: const Text('Assign'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   void _performJobAction(
     BuildContext context,
@@ -20,8 +146,15 @@ class PendingJobDetailsScreen extends ConsumerWidget {
           .read(operationsRepositoryProvider)
           .updateJobStatus(jobId, status);
 
-      // Invalidate the provider to force a refresh on the previous screen.
+      // Invalidate the providers to force a refresh.
       ref.invalidate(pendingJobsProvider);
+      // Invalidate jobDetailsProvider for the current job to refresh its state.
+      ref.invalidate(
+        jobDetailsProvider((
+          role: ref.read(authProvider).user!.role!,
+          jobId: jobId,
+        )),
+      );
 
       if (context.mounted) {
         ScaffoldMessenger.of(
@@ -40,7 +173,7 @@ class PendingJobDetailsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final role = context.watch<AuthProvider>().user?.role;
+    final role = ref.watch(authProvider).user?.role;
     if (role == null) {
       // Handle the case where the role is not available
       return const Scaffold(
@@ -91,17 +224,12 @@ class PendingJobDetailsScreen extends ConsumerWidget {
                   spacing: 12,
                   runSpacing: 12,
                   children: [
-                    // "Complete" button removed
                     ElevatedButton(
-                      onPressed: () {
-                        // Implement assign job dialog/screen later if needed
-                        // For now, it's just a placeholder
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Assign Job not yet implemented.'),
-                          ),
-                        );
-                      },
+                      onPressed: () =>
+                          _showAssignJobDialog(context, ref, job.id),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                      ),
                       child: const Text('Assign'),
                     ),
                     ElevatedButton(

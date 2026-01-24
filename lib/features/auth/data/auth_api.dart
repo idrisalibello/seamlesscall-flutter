@@ -1,45 +1,47 @@
 import 'package:dio/dio.dart';
 import 'package:seamlesscall/features/auth/domain/appuser.dart';
+import 'package:seamlesscall/core/network/dio_client.dart';
 
 class AuthApi {
-  final Dio _dio =
-      Dio(
-          BaseOptions(
-            baseUrl: 'http://10.136.238.59/seamless_call/api/v1',
-            connectTimeout: const Duration(seconds: 60),
-            receiveTimeout: const Duration(seconds: 15),
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json',
-            },
-          ),
-        )
-        ..interceptors.add(
-          InterceptorsWrapper(
-            onRequest: (options, handler) {
-              print('REQUEST[${options.method}] => PATH: ${options.path}');
-              print('REQUEST[${options.method}] => URL: ${options.uri}');
-              print('Headers: ${options.headers}');
-              print('Data: ${options.data}');
-              return handler.next(options);
-            },
-            onResponse: (response, handler) {
-              print(
-                'RESPONSE[${response.statusCode}] => PATH: ${response.requestOptions.path}',
-              );
-              print('Response Data: ${response.data}');
-              return handler.next(response);
-            },
-            onError: (DioError e, handler) {
-              print(
-                'ERROR[${e.response?.statusCode}] => PATH: ${e.requestOptions.path}',
-              );
-              print('Error Message: ${e.message}');
-              print('Error Response Data: ${e.response?.data}');
-              return handler.next(e);
-            },
-          ),
-        );
+  // final Dio _dio =
+  //     Dio(
+  //         BaseOptions(
+  //           baseUrl: 'http://192.168.1.221/seamless_call/api/v1',
+  //           connectTimeout: const Duration(seconds: 60),
+  //           receiveTimeout: const Duration(seconds: 15),
+  //           headers: {
+  //             'Accept': 'application/json',
+  //             'Content-Type': 'application/json',
+  //           },
+  //         ),
+  //       )
+  //       ..interceptors.add(
+  //         InterceptorsWrapper(
+  //           onRequest: (options, handler) {
+  //             print('REQUEST[${options.method}] => PATH: ${options.path}');
+  //             print('REQUEST[${options.method}] => URL: ${options.uri}');
+  //             print('Headers: ${options.headers}');
+  //             print('Data: ${options.data}');
+  //             return handler.next(options);
+  //           },
+  //           onResponse: (response, handler) {
+  //             print(
+  //               'RESPONSE[${response.statusCode}] => PATH: ${response.requestOptions.path}',
+  //             );
+  //             print('Response Data: ${response.data}');
+  //             return handler.next(response);
+  //           },
+  //           onError: (DioError e, handler) {
+  //             print(
+  //               'ERROR[${e.response?.statusCode}] => PATH: ${e.requestOptions.path}',
+  //             );
+  //             print('Error Message: ${e.message}');
+  //             print('Error Response Data: ${e.response?.data}');
+  //             return handler.next(e);
+  //           },
+  //         ),
+  //       );
+  final Dio _dio = DioClient().dio;
 
   Future<Map<String, dynamic>> applyAsProvider({
     required String token,
@@ -49,7 +51,7 @@ class AuthApi {
   }) async {
     try {
       final resp = await _dio.post(
-        '/auth/apply-as-provider',
+        'api/v1/auth/apply-as-provider',
         data: {
           'company_name': companyName,
           'location': location,
@@ -87,7 +89,7 @@ class AuthApi {
   }) async {
     try {
       final resp = await _dio.post(
-        '/register',
+        'api/v1/register',
         data: {
           'name': name,
           'email': email,
@@ -135,7 +137,7 @@ class AuthApi {
   }) async {
     try {
       final resp = await _dio.post(
-        '/login',
+        'api/v1/login',
         data: {'email_or_phone': identifier, 'password': password},
       );
 
@@ -164,7 +166,7 @@ class AuthApi {
   Future<void> requestLoginOtp(String identifier) async {
     try {
       final resp = await _dio.post(
-        '/auth/otp/request',
+        'api/v1/auth/otp/request',
         data: {'identifier': identifier},
       );
       if (resp.statusCode != 200) {
@@ -185,7 +187,7 @@ class AuthApi {
   Future<String> loginWithOtp(String identifier, String otp) async {
     try {
       final resp = await _dio.post(
-        '/auth/otp/login',
+        'api/v1/auth/otp/login',
         data: {'identifier': identifier, 'otp': otp},
       );
       if (resp.statusCode == 200) {
@@ -216,7 +218,7 @@ class AuthApi {
   }) async {
     try {
       final resp = await _dio.post(
-        '/auth/oauth',
+        'api/v1/auth/oauth',
         data: {'provider': provider, 'token': token},
       );
 

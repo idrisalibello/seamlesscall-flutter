@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:seamlesscall/features/auth/presentation/auth_providers.dart';
 import 'package:seamlesscall/features/auth/domain/appuser.dart';
 import 'package:seamlesscall/features/auth/data/auth_repository.dart';
@@ -13,14 +14,14 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../common/constants/theme.dart';
 import 'register_screen.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen>
+class _LoginScreenState extends ConsumerState<LoginScreen>
     with TickerProviderStateMixin {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -67,7 +68,10 @@ class _LoginScreenState extends State<LoginScreen>
         password: password,
       );
 
-      Provider.of<AuthProvider>(context, listen: false).setUser(user);
+      // Riverpod replacement for Provider<AuthProvider>.setUser(user)
+      ref.read(authProvider.notifier).setUser(user);
+
+      if (!mounted) return;
 
       if (user.role == 'Admin' || user.role == 'Provider') {
         Navigator.push(
@@ -262,9 +266,7 @@ class _LoginScreenState extends State<LoginScreen>
                                       ],
                                     ),
                                   ),
-
                                   const SizedBox(height: 12),
-
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
@@ -278,9 +280,7 @@ class _LoginScreenState extends State<LoginScreen>
                                           color: Colors.red,
                                         ),
                                       ),
-
                                       const SizedBox(width: 20),
-
                                       IconButton(
                                         iconSize: 26,
                                         onPressed: () {
@@ -291,9 +291,7 @@ class _LoginScreenState extends State<LoginScreen>
                                           color: Colors.blue,
                                         ),
                                       ),
-
                                       const SizedBox(width: 20),
-
                                       IconButton(
                                         iconSize: 26,
                                         onPressed: () {
@@ -311,7 +309,6 @@ class _LoginScreenState extends State<LoginScreen>
                                       ),
                                     ],
                                   ),
-
                                   TextButton(
                                     onPressed: () {
                                       Navigator.push(

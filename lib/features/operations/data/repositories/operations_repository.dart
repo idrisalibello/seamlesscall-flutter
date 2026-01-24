@@ -71,4 +71,15 @@ class OperationsRepository {
       rethrow;
     }
   }
+
+  Future<List<Map<String, dynamic>>> getAvailableProviders() async {
+    try {
+      final response = await _dio.get('/api/v1/operations/admin/providers/available');
+      final List<dynamic> data = response.data['data'];
+      // Assuming the API returns a list of maps, e.g., [{'id': 1, 'name': 'Provider A'}]
+      return data.map((json) => json as Map<String, dynamic>).toList();
+    } on DioException {
+      rethrow;
+    }
+  }
 }

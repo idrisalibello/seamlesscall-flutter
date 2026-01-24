@@ -70,6 +70,9 @@ class _AdminShellState extends State<AdminShell> {
       // operations
       case '/admin/jobs/active':
         return const ActiveJobsScreen();
+      case '/admin/jobs/pending':
+        return const PendingJobsScreen();
+
       case '/admin/jobs/scheduled':
         return const ScheduledJobsScreen();
       case '/admin/jobs/cancelled':
@@ -138,7 +141,7 @@ class _AdminShellState extends State<AdminShell> {
 
       case '/admin/system/create-admin':
         return const CreateAdminUserScreen();
-      
+
       case '/admin/system/users':
         return const UsersListScreen();
 
@@ -177,6 +180,7 @@ class _AdminShellState extends State<AdminShell> {
       divider(),
       header('Operations'),
       item('Active Jobs', '/admin/jobs/active'),
+      item('Pending Jobs', '/admin/jobs/pending'),
       item('Scheduled Jobs', '/admin/jobs/scheduled'),
       item('Cancelled Jobs', '/admin/jobs/cancelled'),
       item('Dispatch Center', '/admin/dispatch'),

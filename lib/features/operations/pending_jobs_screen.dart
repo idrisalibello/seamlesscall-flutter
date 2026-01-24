@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:provider/provider.dart';
 import 'package:seamlesscall/features/auth/presentation/auth_providers.dart';
 import 'package:seamlesscall/features/operations/application/operations_providers.dart';
 import 'package:seamlesscall/features/operations/pending_job_details_screen.dart'; // New details screen for pending jobs
@@ -18,7 +17,7 @@ class _PendingJobsScreenState extends ConsumerState<PendingJobsScreen> {
     super.initState();
     // Use a post-frame callback to safely access providers.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final role = context.read<AuthProvider>().user?.role;
+      final role = ref.read(authProvider).user?.role;
       if (role == 'Admin') {
         ref.read(pendingJobsProvider.notifier).fetchJobs();
       } else {
@@ -56,7 +55,8 @@ class _PendingJobsScreenState extends ConsumerState<PendingJobsScreen> {
                       child: ListTile(
                         title: Text(job.title),
                         subtitle: Text(
-                            '${job.customerName} • ${job.scheduledTime.toLocal().toString().split(' ')[1]}'),
+                          '${job.customerName} • ${job.scheduledTime.toLocal().toString().split(' ')[1]}',
+                        ),
                         trailing: const Icon(Icons.arrow_forward_ios),
                         onTap: () {
                           Navigator.push(
