@@ -124,6 +124,46 @@ class OperationsRepository {
     }
   }
 
+  Future<List<Job>> getAdminCancelledJobs() async {
+    try {
+      final response = await _dio.get('/api/v1/operations/admin/jobs/cancelled');
+      final body = response.data;
+
+      if (body is! Map<String, dynamic>) {
+        throw Exception('Unexpected response shape');
+      }
+
+      final data = body['data'];
+      if (data is! List) return const [];
+
+      return data
+          .map((json) => Job.fromJson(Map<String, dynamic>.from(json)))
+          .toList(growable: false);
+    } on DioException {
+      rethrow;
+    }
+  }
+
+  Future<List<Job>> getAdminEscalatedJobs() async {
+    try {
+      final response = await _dio.get('/api/v1/operations/admin/jobs/escalated');
+      final body = response.data;
+
+      if (body is! Map<String, dynamic>) {
+        throw Exception('Unexpected response shape');
+      }
+
+      final data = body['data'];
+      if (data is! List) return const [];
+
+      return data
+          .map((json) => Job.fromJson(Map<String, dynamic>.from(json)))
+          .toList(growable: false);
+    } on DioException {
+      rethrow;
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getAvailableProviders() async {
     try {
       final response = await _dio.get(

@@ -85,6 +85,50 @@ final availableProvidersProvider = FutureProvider<List<Map<String, dynamic>>>((
   return repository.getAvailableProviders();
 });
 
+class CancelledJobsNotifier extends StateNotifier<AsyncValue<List<Job>>> {
+  final OperationsRepository _repository;
+
+  CancelledJobsNotifier(this._repository) : super(const AsyncValue.loading());
+
+  Future<void> fetchJobs() async {
+    try {
+      state = const AsyncValue.loading();
+      final jobs = await _repository.getAdminCancelledJobs();
+      state = AsyncValue.data(jobs);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+}
+
+final cancelledJobsProvider =
+    StateNotifierProvider<CancelledJobsNotifier, AsyncValue<List<Job>>>((ref) {
+      final repository = ref.watch(operationsRepositoryProvider);
+      return CancelledJobsNotifier(repository)..fetchJobs();
+    });
+
+class EscalatedJobsNotifier extends StateNotifier<AsyncValue<List<Job>>> {
+  final OperationsRepository _repository;
+
+  EscalatedJobsNotifier(this._repository) : super(const AsyncValue.loading());
+
+  Future<void> fetchJobs() async {
+    try {
+      state = const AsyncValue.loading();
+      final jobs = await _repository.getAdminEscalatedJobs();
+      state = AsyncValue.data(jobs);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+}
+
+final escalatedJobsProvider =
+    StateNotifierProvider<EscalatedJobsNotifier, AsyncValue<List<Job>>>((ref) {
+      final repository = ref.watch(operationsRepositoryProvider);
+      return EscalatedJobsNotifier(repository)..fetchJobs();
+    });
+
 // import 'package:flutter_riverpod/flutter_riverpod.dart';
 // import 'package:seamlesscall/features/operations/data/repositories/operations_repository.dart';
 // import 'package:seamlesscall/features/operations/domain/job.dart';
