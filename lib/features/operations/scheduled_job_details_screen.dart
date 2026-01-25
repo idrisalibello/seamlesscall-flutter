@@ -1,160 +1,192 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:seamlesscall/features/auth/presentation/auth_providers.dart';
+import 'package:seamlesscall/features/operations/application/operations_providers.dart';
 
-class ScheduledJobDetailsScreen extends StatelessWidget {
-  final Map<String, String> job;
-  const ScheduledJobDetailsScreen({super.key, required this.job});
+class ScheduledJobDetailsScreen extends ConsumerWidget {
+  final int jobId;
+  const ScheduledJobDetailsScreen({super.key, required this.jobId});
 
-  void _showMockDialog(BuildContext context, String action) {
+  // Loading wrapper for async actions, consistent with pending screen
+  Future<T> _readWithLoading<T>(
+    BuildContext context,
+    Future<T> Function() action,
+  ) async {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: Text(action),
-        content: Text('This is a mock for $action functionality.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
     );
+
+    try {
+      return await action();
+    } finally {
+      if (context.mounted) Navigator.of(context).pop();
+    }
+  }
+
+  // Handle simple status updates
+  Future<void> _performJobAction(
+    BuildContext context,
+    WidgetRef ref,
+    String status,
+  ) async {
+    try {
+      await _readWithLoading(
+        context,
+        () => ref.read(operationsRepositoryProvider).updateJobStatus(jobId, status),
+      );
+
+      ref.invalidate(scheduledJobsProvider);
+      ref.invalidate(jobDetailsProvider((role: 'Admin', jobId: jobId)));
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Job has been marked as $status.')),
+      );
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update job status: $e')),
+      );
+    }
+  }
+
+  // Handle the 'Assign Technician' flow
+  Future<void> _showAssignJobDialog(BuildContext context, WidgetRef ref) async {
+    try {
+      final providers = await _readWithLoading(
+        context,
+        () => ref.read(availableProvidersProvider.future),
+      );
+
+      if (!context.mounted) return;
+
+      if (providers.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No available providers found.')),
+        );
+        return;
+      }
+
+      int? selectedProviderId;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Assign Job to Provider'),
+          content: StatefulBuilder(
+            builder: (ctx, setState) => DropdownButtonFormField<int>(
+              value: selectedProviderId,
+              hint: const Text('Select Provider'),
+              items: providers.map((p) => DropdownMenuItem<int>(
+                value: p['id'] as int,
+                child: Text(p['name'].toString()),
+              )).toList(),
+              onChanged: (value) => setState(() => selectedProviderId = value),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+            ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Assign')),
+          ],
+        ),
+      );
+
+      if (confirmed != true || selectedProviderId == null) return;
+
+      await _readWithLoading(
+        context,
+        () => ref.read(operationsRepositoryProvider).assignJob(jobId, selectedProviderId!),
+      );
+
+      ref.invalidate(scheduledJobsProvider);
+      ref.invalidate(jobDetailsProvider((role: 'Admin', jobId: jobId)));
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Job assigned successfully!')),
+      );
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to assign job: $e')),
+      );
+    }
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final role = ref.watch(authProvider).user?.role ?? 'Admin';
+    final jobAsync = ref.watch(jobDetailsProvider((role: role, jobId: jobId)));
+
     return Scaffold(
       backgroundColor: Colors.blueGrey.shade900,
       appBar: AppBar(
         backgroundColor: Colors.blueGrey.shade800,
-        title: Text(job['title'] ?? 'Scheduled Job Details'),
+        title: const Text('Scheduled Job Details'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: ListView(
-          children: [
-            // Job Info Card
-            Card(
-              color: Colors.blueGrey.shade700,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Job Info',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Title: ${job['title']}',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                    Text(
-                      'Customer: ${job['customer']}',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                    Text(
-                      'Scheduled Time: ${job['time']}',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ],
+      body: jobAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, stack) => Center(child: Text('Error: $err')),
+        data: (job) => Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: ListView(
+            children: [
+              Card(
+                color: Colors.blueGrey.shade700,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Job Info', style: theme.textTheme.titleMedium?.copyWith(color: Colors.white)),
+                      const SizedBox(height: 8),
+                      Text('Title: ${job.title}', style: const TextStyle(color: Colors.white)),
+                      Text('Customer: ${job.customerName}', style: const TextStyle(color: Colors.white)),
+                      Text('Scheduled: ${job.scheduledTime.toLocal()}', style: const TextStyle(color: Colors.white)),
+                      Text('Status: ${job.status}', style: const TextStyle(color: Colors.white)),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-
-            // Actions Card
-            Card(
-              color: Colors.blueGrey.shade700,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Actions',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        ElevatedButton(
-                          onPressed: () =>
-                              _showMockDialog(context, 'Mark Completed'),
-                          child: const Text('Mark Completed'),
-                        ),
-                        ElevatedButton(
-                          onPressed: () =>
-                              _showMockDialog(context, 'Assign Technician'),
-                          child: const Text('Assign Technician'),
-                        ),
-                        ElevatedButton(
-                          onPressed: () =>
-                              _showMockDialog(context, 'Reschedule'),
-                          child: const Text('Reschedule'),
-                        ),
-                        ElevatedButton(
-                          onPressed: () =>
-                              _showMockDialog(context, 'Cancel Job'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
+              const SizedBox(height: 16),
+              Card(
+                color: Colors.blueGrey.shade700,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Actions', style: theme.textTheme.titleMedium?.copyWith(color: Colors.white)),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          ElevatedButton(
+                            onPressed: () => _performJobAction(context, ref, 'completed'),
+                            child: const Text('Mark Completed'),
                           ),
-                          child: const Text('Cancel Job'),
-                        ),
-                        ElevatedButton(
-                          onPressed: () =>
-                              _showMockDialog(context, 'View History'),
-                          child: const Text('View History'),
-                        ),
-                        ElevatedButton(
-                          onPressed: () => _showMockDialog(context, 'Add Note'),
-                          child: const Text('Add Note'),
-                        ),
-                      ],
-                    ),
-                  ],
+                          ElevatedButton(
+                            onPressed: () => _showAssignJobDialog(context, ref),
+                            child: const Text('Assign Technician'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => _performJobAction(context, ref, 'cancelled'),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                            child: const Text('Cancel Job'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-
-            // Status / Timeline Card
-            Card(
-              color: Colors.blueGrey.shade700,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Status Timeline',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    ListView.separated(
-                      physics: const NeverScrollableScrollPhysics(),
-                      shrinkWrap: true,
-                      itemCount: 4,
-                      separatorBuilder: (_, __) => const SizedBox(height: 6),
-                      itemBuilder: (context, index) => Text(
-                        'Step ${index + 1}: Example status update',
-                        style: const TextStyle(color: Colors.white70),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

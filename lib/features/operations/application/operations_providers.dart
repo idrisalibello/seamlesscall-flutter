@@ -56,6 +56,28 @@ final pendingJobsProvider =
       return PendingJobsNotifier(repository)..fetchJobs(); // <-- important
     });
 
+class ScheduledJobsNotifier extends StateNotifier<AsyncValue<List<Job>>> {
+  final OperationsRepository _repository;
+
+  ScheduledJobsNotifier(this._repository) : super(const AsyncValue.loading());
+
+  Future<void> fetchJobs() async {
+    try {
+      state = const AsyncValue.loading();
+      final jobs = await _repository.getAdminScheduledJobs();
+      state = AsyncValue.data(jobs);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+}
+
+final scheduledJobsProvider =
+    StateNotifierProvider<ScheduledJobsNotifier, AsyncValue<List<Job>>>((ref) {
+      final repository = ref.watch(operationsRepositoryProvider);
+      return ScheduledJobsNotifier(repository)..fetchJobs();
+    });
+
 final availableProvidersProvider = FutureProvider<List<Map<String, dynamic>>>((
   ref,
 ) async {

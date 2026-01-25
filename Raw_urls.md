@@ -39,3 +39,21 @@ CI4: https://raw.githubusercontent.com/idrisalibello/seamlesscall-CI4/refs/heads
 16.https://raw.githubusercontent.com/idrisalibello/seamlesscall-flutter/refs/heads/main/lib/features/operations/scheduled_jobs_screen.dart
 
 17. https://raw.githubusercontent.com/idrisalibello/seamlesscall-flutter/refs/heads/main/lib/features/operations/scheduled_job_details_screen.dart
+
+18. https://raw.githubusercontent.com/idrisalibello/seamlesscall-flutter/refs/heads/main/lib/features/operations/escalations_screen.dart
+
+19. https://raw.githubusercontent.com/idrisalibello/seamlesscall-flutter/refs/heads/main/lib/features/operations/escalations_details_screen.dart
+
+20. https://raw.githubusercontent.com/idrisalibello/seamlesscall-flutter/refs/heads/main/lib/features/operations/cancelled_job_details_screen.dart
+
+21. https://raw.githubusercontent.com/idrisalibello/seamlesscall-flutter/refs/heads/main/lib/features/operations/cancelled_jobs_screen.dart
+
+22. https://raw.githubusercontent.com/idrisalibello/seamlesscall-flutter/refs/heads/main/lib/features/operations/dispatch_center_details_screen.dart
+
+23. https://raw.githubusercontent.com/idrisalibello/seamlesscall-flutter/refs/heads/main/lib/features/operations/dispatch_center_screen.dart
+
+24. https://raw.githubusercontent.com/idrisalibello/seamlesscall-flutter/refs/heads/main/lib/features/operations/escalations_details_screen.dart
+
+25. https://raw.githubusercontent.com/idrisalibello/seamlesscall-flutter/refs/heads/main/lib/features/operations/escalations_screen.dart
+
+26. https://raw.githubusercontent.com/idrisalibello/seamlesscall-CI4/refs/heads/main/public/seamless_call_db.sql

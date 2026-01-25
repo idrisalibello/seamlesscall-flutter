@@ -104,6 +104,27 @@ class OperationsRepository {
     }
   }
 
+  Future<List<Job>> getAdminScheduledJobs() async {
+    try {
+      final response = await _dio.get('/api/v1/operations/admin/jobs');
+      final body = response.data;
+
+      if (body is! Map<String, dynamic>) {
+        throw Exception('Unexpected response shape');
+      }
+
+      final data = body['data'];
+      if (data is! List) return const <Job>[];
+
+      return data
+          .map((json) => Job.fromJson(Map<String, dynamic>.from(json)))
+          .where((job) => job.status == 'scheduled')
+          .toList(growable: false);
+    } on DioException {
+      rethrow;
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getAvailableProviders() async {
     try {
       final response = await _dio.get(
