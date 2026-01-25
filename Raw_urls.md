@@ -52,8 +52,4 @@ CI4: https://raw.githubusercontent.com/idrisalibello/seamlesscall-CI4/refs/heads
 
 23. https://raw.githubusercontent.com/idrisalibello/seamlesscall-flutter/refs/heads/main/lib/features/operations/dispatch_center_screen.dart
 
-24. https://raw.githubusercontent.com/idrisalibello/seamlesscall-flutter/refs/heads/main/lib/features/operations/escalations_details_screen.dart
-
-25. https://raw.githubusercontent.com/idrisalibello/seamlesscall-flutter/refs/heads/main/lib/features/operations/escalations_screen.dart
-
-26. https://raw.githubusercontent.com/idrisalibello/seamlesscall-CI4/refs/heads/main/public/seamless_call_db.sql
+24. https://raw.githubusercontent.com/idrisalibello/seamlesscall-CI4/refs/heads/main/public/seamless_call_db.sql

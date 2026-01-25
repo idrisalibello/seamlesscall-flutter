@@ -79,10 +79,16 @@ class ScheduledJobDetailsScreen extends ConsumerWidget {
             builder: (ctx, setState) => DropdownButtonFormField<int>(
               value: selectedProviderId,
               hint: const Text('Select Provider'),
-              items: providers.map((p) => DropdownMenuItem<int>(
-                value: p['id'] as int,
-                child: Text(p['name'].toString()),
-              )).toList(),
+              items: providers.map((p) {
+                final rawId = p['id'];
+                final int? normalizedId = rawId is int ? rawId : int.tryParse(rawId.toString());
+                if (normalizedId == null) return null;
+
+                return DropdownMenuItem<int>(
+                  value: normalizedId,
+                  child: Text(p['name'].toString()),
+                );
+              }).whereType<DropdownMenuItem<int>>().toList(),
               onChanged: (value) => setState(() => selectedProviderId = value),
             ),
           ),
