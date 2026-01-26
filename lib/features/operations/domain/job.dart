@@ -3,22 +3,45 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'job.g.dart';
 
+// Helper for non-nullable int fields that might come as String
+int _intFromJson(dynamic input) {
+  if (input is int) {
+    return input;
+  } else if (input is String) {
+    return int.parse(input);
+  }
+  throw ArgumentError('Expected int or String for int field, but got ${input.runtimeType}');
+}
+
+// Helper for nullable int fields that might come as String
+int? _nullableIntFromJson(dynamic input) {
+  if (input == null) {
+    return null;
+  } else if (input is int) {
+    return input;
+  } else if (input is String) {
+    return int.tryParse(input);
+  }
+  throw ArgumentError('Expected int, String, or null for nullable int field, but got ${input.runtimeType}');
+}
+
 @JsonSerializable()
 class Job extends Equatable {
+  @JsonKey(fromJson: _intFromJson)
   final int id;
-  @JsonKey(name: 'customer_id')
+  @JsonKey(name: 'customer_id', fromJson: _intFromJson)
   final int customerId;
   @JsonKey(name: 'customer_name')
   final String customerName;
   @JsonKey(name: 'customer_phone')
   final String? customerPhone; // Added for job details
-  @JsonKey(name: 'provider_id')
+  @JsonKey(name: 'provider_id', fromJson: _nullableIntFromJson)
   final int? providerId;
   @JsonKey(name: 'provider_name')
   final String? providerName; // Added for admin view
   @JsonKey(name: 'provider_phone')
   final String? providerPhone; // Added for admin view
-  @JsonKey(name: 'service_id')
+  @JsonKey(name: 'service_id', fromJson: _intFromJson)
   final int serviceId;
   @JsonKey(name: 'service_name')
   final String serviceName; // Added for display
@@ -37,7 +60,7 @@ class Job extends Equatable {
   final String? escalationReason;
   @JsonKey(name: 'escalated_at')
   final DateTime? escalatedAt;
-  @JsonKey(name: 'escalated_by')
+  @JsonKey(name: 'escalated_by', fromJson: _nullableIntFromJson)
   final int? escalatedBy;
 
   @JsonKey(name: 'created_at')
@@ -92,9 +115,9 @@ class Job extends Equatable {
     completedAt,
     cancelledAt,
     assignedAt,
-    assignedAt,
-    createdAt,
-    updatedAt,
+    escalationReason,
+    escalatedAt,
+    escalatedBy,
     createdAt,
     updatedAt,
   ];

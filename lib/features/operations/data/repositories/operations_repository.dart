@@ -84,6 +84,18 @@ class OperationsRepository {
     }
   }
 
+  Future<bool> resolveEscalation(int jobId, String resolutionNote) async {
+    try {
+      await _dio.put(
+        '/api/v1/operations/admin/jobs/$jobId/resolve-escalation',
+        data: {'resolution_note': resolutionNote},
+      );
+      return true;
+    } on DioException {
+      rethrow;
+    }
+  }
+
   Future<List<Job>> getAdminPendingJobs() async {
     try {
       final response = await _dio.get('/api/v1/operations/admin/jobs/pending');
@@ -147,6 +159,7 @@ class OperationsRepository {
   Future<List<Job>> getAdminEscalatedJobs() async {
     try {
       final response = await _dio.get('/api/v1/operations/admin/jobs/escalated');
+      print('Backend response for escalated jobs: ${response.data}');
       final body = response.data;
 
       if (body is! Map<String, dynamic>) {
