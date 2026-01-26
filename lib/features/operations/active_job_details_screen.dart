@@ -9,6 +9,34 @@ class ActiveJobDetailsScreen extends ConsumerWidget {
   final int jobId;
   const ActiveJobDetailsScreen({super.key, required this.jobId});
 
+  Future<String?> _askEscalationReason(BuildContext context) {
+    final controller = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Escalate Job'),
+        content: TextField(
+          controller: controller,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            labelText: 'Escalation reason',
+            hintText: 'Why are you escalating this job?',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(null),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
+            child: const Text('Submit'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _performJobAction(
     BuildContext context,
     WidgetRef ref,
@@ -16,13 +44,33 @@ class ActiveJobDetailsScreen extends ConsumerWidget {
     String status,
   ) async {
     try {
-      await ref
-          .read(operationsRepositoryProvider)
-          .updateJobStatus(jobId, status);
+      if (status == 'escalated') {
+        final reason = await _askEscalationReason(context);
+        if (reason == null || !context.mounted) return;
+        if (reason.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Escalation reason cannot be empty.')),
+          );
+          return;
+        }
 
-      final role = ref.read(authProvider).user?.role ?? 'Provider';
+        await ref.read(operationsRepositoryProvider).escalateJob(jobId, reason);
 
-      await ref.read(activeJobsProvider.notifier).fetchJobs(role);
+        // Invalidate relevant providers for escalation
+        ref.invalidate(escalatedJobsProvider); // NEW: Refresh escalated list
+        ref.invalidate(activeJobsProvider); // Refresh active list, as job moves out
+        // Invalidate jobDetailsProvider for this specific job, as its status has changed
+        ref.invalidate(jobDetailsProvider((role: ref.read(authProvider).user!.role!, jobId: jobId)));
+      } else {
+        // Existing logic for 'completed' and 'cancelled'
+        await ref
+            .read(operationsRepositoryProvider)
+            .updateJobStatus(jobId, status);
+
+        final role = ref.read(authProvider).user?.role ?? 'Provider';
+        await ref.read(activeJobsProvider.notifier).fetchJobs(role); // Refresh active list
+      }
+
 
       if (context.mounted) {
         ScaffoldMessenger.of(
@@ -109,11 +157,11 @@ class ActiveJobDetailsScreen extends ConsumerWidget {
                       },
                       child: const Text('Re-assign'),
                     ),
-                    // ElevatedButton(
-                    //   onPressed: () =>
-                    //       _performJobAction(context, ref, job.id, 'escalated'),
-                    //   child: const Text('Escalate'),
-                    // ),
+                    ElevatedButton( // Uncommented Escalate button
+                      onPressed: () =>
+                          _performJobAction(context, ref, job.id, 'escalated'),
+                      child: const Text('Escalate'),
+                    ),
                     ElevatedButton(
                       onPressed: () =>
                           _performJobAction(context, ref, job.id, 'cancelled'),
