@@ -8,7 +8,11 @@ class VerificationQueueDetailScreen extends ConsumerWidget {
   const VerificationQueueDetailScreen({required this.caseId, super.key});
 
   void _showReasonDialog(
-      BuildContext context, WidgetRef ref, String title, Function(String) onConfirm) {
+    BuildContext context,
+    WidgetRef ref,
+    String title,
+    Function(String) onConfirm,
+  ) {
     final reasonController = TextEditingController();
     final formKey = GlobalKey<FormState>();
 
@@ -88,7 +92,6 @@ class VerificationQueueDetailScreen extends ConsumerWidget {
     }
   }
 
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final detailAsync = ref.watch(verificationCaseDetailProvider(caseId));
@@ -119,8 +122,8 @@ class VerificationQueueDetailScreen extends ConsumerWidget {
         floatingActionButton: detailAsync.when(
           data: (caseDetail) => _buildActionButtons(context, ref, caseDetail),
           loading: () => null,
-          error: (e,s) => null,
-        )
+          error: (e, s) => null,
+        ),
       ),
     );
   }
@@ -139,30 +142,51 @@ class VerificationQueueDetailScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  caseDetail.providerName ?? 'Provider ID: ${caseDetail.providerId}',
-                  style: Theme.of(context).textTheme.headlineSmall,
+                  caseDetail.providerName ??
+                      'Provider ID: ${caseDetail.providerId}',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    color: Colors.blue.shade900,
+                  ),
                 ),
+
                 const SizedBox(height: 4),
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.orange[100],
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Text('Provider', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        'Provider',
+                        style: TextStyle(
+                          color: Colors.orange,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
-                        color: _getStatusColor(caseDetail.status).withOpacity(0.2),
+                        color: _getStatusColor(
+                          caseDetail.status,
+                        ).withOpacity(0.2),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         caseDetail.status,
-                        style: TextStyle(color: _getStatusColor(caseDetail.status), fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: _getStatusColor(caseDetail.status),
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
@@ -181,14 +205,31 @@ class VerificationQueueDetailScreen extends ConsumerWidget {
         children: [
           // Documents Tab (mock for now)
           const Center(child: Text("Documents view not implemented")),
-          
+
           // Profile Info Tab
           ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Card(child: ListTile(title: const Text('Phone'), subtitle: Text(caseDetail.providerPhone ?? 'N/A'))),
-              Card(child: ListTile(title: const Text('Email'), subtitle: Text(caseDetail.providerEmail ?? 'N/A'))),
-              Card(child: ListTile(title: const Text('Joined Date'), subtitle: Text(caseDetail.createdAt.toIso8601String().split('T').first))),
+              Card(
+                child: ListTile(
+                  title: const Text('Phone'),
+                  subtitle: Text(caseDetail.providerPhone ?? 'N/A'),
+                ),
+              ),
+              Card(
+                child: ListTile(
+                  title: const Text('Email'),
+                  subtitle: Text(caseDetail.providerEmail ?? 'N/A'),
+                ),
+              ),
+              Card(
+                child: ListTile(
+                  title: const Text('Joined Date'),
+                  subtitle: Text(
+                    caseDetail.createdAt.toIso8601String().split('T').first,
+                  ),
+                ),
+              ),
             ],
           ),
 
@@ -196,10 +237,20 @@ class VerificationQueueDetailScreen extends ConsumerWidget {
           ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              if(caseDetail.decisionReason != null)
-                Card(child: ListTile(title: const Text('Decision Reason'), subtitle: Text(caseDetail.decisionReason!))),
-              if(caseDetail.escalationReason != null)
-                Card(child: ListTile(title: const Text('Escalation Reason'), subtitle: Text(caseDetail.escalationReason!))),
+              if (caseDetail.decisionReason != null)
+                Card(
+                  child: ListTile(
+                    title: const Text('Decision Reason'),
+                    subtitle: Text(caseDetail.decisionReason!),
+                  ),
+                ),
+              if (caseDetail.escalationReason != null)
+                Card(
+                  child: ListTile(
+                    title: const Text('Escalation Reason'),
+                    subtitle: Text(caseDetail.escalationReason!),
+                  ),
+                ),
             ],
           ),
         ],
@@ -207,14 +258,23 @@ class VerificationQueueDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildActionButtons(BuildContext context, WidgetRef ref, VerificationCase caseDetail) {
+  Widget _buildActionButtons(
+    BuildContext context,
+    WidgetRef ref,
+    VerificationCase caseDetail,
+  ) {
     final repo = ref.read(verificationRepositoryProvider);
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         FloatingActionButton(
           heroTag: 'approve',
-          onPressed: () => _performAction(context, ref, "Approve", () => repo.approveVerification(caseId)),
+          onPressed: () => _performAction(
+            context,
+            ref,
+            "Approve",
+            () => repo.approveVerification(caseId),
+          ),
           tooltip: 'Approve',
           backgroundColor: Colors.green,
           child: const Icon(Icons.check),
@@ -222,9 +282,15 @@ class VerificationQueueDetailScreen extends ConsumerWidget {
         const SizedBox(width: 16),
         FloatingActionButton(
           heroTag: 'reject',
-          onPressed: () => _showReasonDialog(context, ref, 'Reject Case', (reason) {
-            _performAction(context, ref, "Reject", () => repo.rejectVerification(caseId, reason));
-          }),
+          onPressed: () =>
+              _showReasonDialog(context, ref, 'Reject Case', (reason) {
+                _performAction(
+                  context,
+                  ref,
+                  "Reject",
+                  () => repo.rejectVerification(caseId, reason),
+                );
+              }),
           tooltip: 'Reject',
           backgroundColor: Colors.red,
           child: const Icon(Icons.close),
@@ -232,9 +298,15 @@ class VerificationQueueDetailScreen extends ConsumerWidget {
         const SizedBox(width: 16),
         FloatingActionButton(
           heroTag: 'escalate',
-          onPressed: () => _showReasonDialog(context, ref, 'Escalate Case', (reason) {
-            _performAction(context, ref, "Escalate", () => repo.escalateVerification(caseId, reason));
-          }),
+          onPressed: () =>
+              _showReasonDialog(context, ref, 'Escalate Case', (reason) {
+                _performAction(
+                  context,
+                  ref,
+                  "Escalate",
+                  () => repo.escalateVerification(caseId, reason),
+                );
+              }),
           tooltip: 'Escalate',
           backgroundColor: Colors.orange,
           child: const Icon(Icons.flag),

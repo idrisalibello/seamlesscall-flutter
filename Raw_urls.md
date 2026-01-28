@@ -66,3 +66,9 @@ CI4: https://raw.githubusercontent.com/idrisalibello/seamlesscall-CI4/refs/heads
 
 30. https://github.com/idrisalibello/seamlesscall-CI4/blob/main/app/Modules/Admin/Models/VerificationCaseModel.php
 
+31. https://raw.githubusercontent.com/idrisalibello/seamlesscall-flutter/refs/heads/main/lib/features/customer/presentation/apply_as_provider_screen.dart
+
+32. https://raw.githubusercontent.com/idrisalibello/seamlesscall-flutter/refs/heads/main/lib/features/people/provider_performance_screen.dart
+
+33. https://raw.githubusercontent.com/idrisalibello/seamlesscall-flutter/refs/heads/main/lib/features/people/provider_performance_detail_screen.dart
+

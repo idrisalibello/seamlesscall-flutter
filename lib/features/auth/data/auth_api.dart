@@ -43,6 +43,23 @@ class AuthApi {
   //       );
   final Dio _dio = DioClient().dio;
 
+  String _extractError(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      if (data.containsKey('messages') && data['messages'] is Map<String, dynamic>) {
+        final messages = data['messages'] as Map<String, dynamic>;
+        if (messages.containsKey('error')) {
+          return messages['error'].toString();
+        } else {
+          // Join all message values if a specific 'error' key is not found
+          return messages.values.map((v) => v.toString()).join(', ');
+        }
+      } else if (data.containsKey('message')) {
+        return data['message'].toString();
+      }
+    }
+    return data.toString();
+  }
+
   Future<Map<String, dynamic>> applyAsProvider({
     required String token,
     required String companyName,
@@ -63,19 +80,25 @@ class AuthApi {
       if (resp.statusCode == 200) {
         return Map<String, dynamic>.from(resp.data);
       } else {
-        throw Exception(
-          'Application failed with status code ${resp.statusCode}: ${resp.data}',
-        );
+        // Always return a consistent error structure
+        return {
+          'status': 'error',
+          'message': 'Application failed with status code ${resp.statusCode}: ${_extractError(resp.data)}',
+        };
       }
-    } on DioError catch (e) {
+    } on DioException catch (e) { // Changed DioError to DioException for newer Dio versions
+      String errorMessage;
       if (e.response != null) {
-        throw Exception(
-          'Application failed: ${e.response?.statusCode} ${e.response?.data['messages']['error'] ?? e.response?.data}',
-        );
+        // Extract error from response data
+        errorMessage = 'Application failed: ${_extractError(e.response!.data)}';
+      } else {
+        // Network error or other Dio-related issue
+        errorMessage = 'Network error: ${e.message}';
       }
-      throw Exception('Network error: ${e.message}');
+      return {'status': 'error', 'message': errorMessage};
     } catch (e) {
-      throw Exception('Unexpected error during application: $e');
+      // Catch any other unexpected errors
+      return {'status': 'error', 'message': 'Unexpected error during application: ${_extractError(e)}'};
     }
   }
 

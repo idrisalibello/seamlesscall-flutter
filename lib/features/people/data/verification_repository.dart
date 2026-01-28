@@ -33,24 +33,52 @@ class VerificationCase {
     this.providerEmail,
   });
 
-  factory VerificationCase.fromJson(Map<String, dynamic> json) {
+  factory VerificationCase.fromJson(Map json) {
+    int _reqInt(dynamic v, String field) {
+      if (v == null) throw FormatException('Missing field: $field');
+      final s = v.toString().trim();
+      final n = int.tryParse(s);
+      if (n == null) throw FormatException('Invalid int for $field: $s');
+      return n;
+    }
+
+    int? _optInt(dynamic v) {
+      if (v == null) return null;
+      final s = v.toString().trim();
+      return int.tryParse(s);
+    }
+
+    DateTime? _optDate(dynamic v) {
+      if (v == null) return null;
+      final s = v.toString().trim();
+      if (s.isEmpty || s.toLowerCase() == 'null') return null;
+      return DateTime.tryParse(s);
+    }
+
+    final dynamic uid = json['user_id'] ?? json['provider_id'];
+
     return VerificationCase(
-      id: int.parse(json['id'].toString()),
-      providerId: int.parse(json['provider_id'].toString()),
-      status: json['status'],
-      decisionReason: json['decision_reason'],
-      escalationReason: json['escalation_reason'],
-      decidedBy: json['decided_by'],
-      decidedAt: json['decided_at'] != null ? DateTime.parse(json['decided_at']) : null,
-      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : DateTime.fromMillisecondsSinceEpoch(0),
-      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : null,
-      providerName: json['provider_name'],
-      providerPhone: json['provider_phone'],
-      providerEmail: json['provider_email'],
+      id: _reqInt(json['id'], 'id'),
+      providerId: _reqInt(uid, 'user_id/provider_id'),
+      status: (json['status'] ?? '').toString(),
+
+      decisionReason: json['decision_reason']?.toString(),
+      escalationReason: json['escalation_reason']?.toString(),
+
+      decidedBy: _optInt(json['decided_by']),
+      decidedAt: _optDate(json['decided_at']),
+
+      createdAt:
+          _optDate(json['created_at']) ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      updatedAt: _optDate(json['updated_at']),
+
+      providerName: (json['provider_name'] ?? json['name'])?.toString(),
+      providerPhone: (json['provider_phone'] ?? json['phone'])?.toString(),
+      providerEmail: (json['provider_email'] ?? json['email'])?.toString(),
     );
   }
 }
-
 
 class VerificationRepository {
   final Dio _dio = DioClient().dio;
@@ -69,7 +97,9 @@ class VerificationRepository {
 
   Future<VerificationCase> getVerificationCaseDetail(int caseId) async {
     try {
-      final response = await _dio.get('/api/v1/admin/verification-queue/$caseId');
+      final response = await _dio.get(
+        '/api/v1/admin/verification-queue/$caseId',
+      );
       return VerificationCase.fromJson(response.data);
     } catch (e) {
       // TODO: Handle error properly
