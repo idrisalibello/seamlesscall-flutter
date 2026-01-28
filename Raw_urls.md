@@ -57,3 +57,12 @@ CI4: https://raw.githubusercontent.com/idrisalibello/seamlesscall-CI4/refs/heads
 25. https://raw.githubusercontent.com/idrisalibello/seamlesscall-flutter/refs/heads/main/lib/features/people/verification_queue_detail_screen.dart
 
 26. https://raw.githubusercontent.com/idrisalibello/seamlesscall-flutter/refs/heads/main/lib/features/people/verification_queue_screen.dart
+
+27. https://raw.githubusercontent.com/idrisalibello/seamlesscall-flutter/refs/heads/main/lib/features/people/data/verification_repository.dart
+
+28. https://raw.githubusercontent.com/idrisalibello/seamlesscall-flutter/refs/heads/main/lib/features/people/presentation/verification_providers.dart
+
+29. https://github.com/idrisalibello/seamlesscall-CI4/blob/main/app/Modules/Admin/Controllers/VerificationQueueController.php
+
+30. https://github.com/idrisalibello/seamlesscall-CI4/blob/main/app/Modules/Admin/Models/VerificationCaseModel.php
+
