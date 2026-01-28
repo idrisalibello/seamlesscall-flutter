@@ -1,37 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:seamlesscall/features/people/data/verification_repository.dart';
+import 'package:seamlesscall/features/people/presentation/verification_providers.dart';
 
-class VerificationQueueDetailScreen extends StatelessWidget {
-  const VerificationQueueDetailScreen({super.key});
+class VerificationQueueDetailScreen extends ConsumerWidget {
+  final int caseId;
+  const VerificationQueueDetailScreen({required this.caseId, super.key});
 
-  // Mock functions for modals
-  void _showDocumentPreview(BuildContext context, String docName) {
+  void _showReasonDialog(
+      BuildContext context, WidgetRef ref, String title, Function(String) onConfirm) {
+    final reasonController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(docName),
-        content: Container(
-          height: 300,
-          color: Colors.grey[200],
-          child: const Center(
-            child: Icon(Icons.picture_as_pdf, size: 100, color: Colors.grey),
+        title: Text(title),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: reasonController,
+            decoration: const InputDecoration(labelText: 'Reason'),
+            validator: (value) =>
+                value!.isEmpty ? 'Reason cannot be empty' : null,
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showActionConfirmation(BuildContext context, String actionType) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text('$actionType Confirmation'),
-        content: Text('Are you sure you want to $actionType this provider?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -39,18 +32,67 @@ class VerificationQueueDetailScreen extends StatelessWidget {
           ),
           TextButton(
             onPressed: () {
-              // Action placeholder
-              Navigator.pop(context);
+              if (formKey.currentState!.validate()) {
+                onConfirm(reasonController.text);
+                Navigator.pop(context);
+              }
             },
-            child: Text(actionType),
+            child: const Text('Confirm'),
           ),
         ],
       ),
     );
   }
 
+  void _performAction(
+    BuildContext context,
+    WidgetRef ref,
+    String actionName,
+    Future<void> Function() action,
+  ) async {
+    // Show a confirmation dialog first
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Confirm $actionName'),
+          content: Text('Are you sure you want to $actionName this case?'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(false),
+            ),
+            TextButton(
+              child: Text(actionName),
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      try {
+        await action();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Case $actionName successfully!')),
+        );
+        ref.invalidate(verificationQueueProvider);
+        ref.invalidate(verificationCaseDetailProvider(caseId));
+        Navigator.pop(context); // Go back to the list
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to $actionName case: $e')),
+        );
+      }
+    }
+  }
+
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final detailAsync = ref.watch(verificationCaseDetailProvider(caseId));
+
     return DefaultTabController(
       length: 3,
       child: Scaffold(
@@ -64,202 +106,155 @@ class VerificationQueueDetailScreen extends StatelessWidget {
             ],
           ),
         ),
-        body: Column(
-          children: [
-            // Header / Identity
-            Container(
-              padding: const EdgeInsets.all(16),
-              color: Colors.grey[100],
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const CircleAvatar(
-                    radius: 36,
-                    child: Icon(Icons.person, size: 36),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Michael Ade',
-                          style: Theme.of(context).textTheme.headlineSmall,
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.orange[100],
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Text(
-                                'Provider',
-                                style: TextStyle(
-                                  color: Colors.orange,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.red[100],
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Text(
-                                'Pending',
-                                style: TextStyle(
-                                  color: Colors.red,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            ElevatedButton.icon(
-                              onPressed: () {},
-                              icon: const Icon(Icons.message),
-                              label: const Text('Message'),
-                            ),
-                            const SizedBox(width: 8),
-                            ElevatedButton.icon(
-                              onPressed: () =>
-                                  _showActionConfirmation(context, 'Escalate'),
-                              icon: const Icon(Icons.flag),
-                              label: const Text('Escalate'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Tabs content
-            Expanded(
-              child: TabBarView(
-                children: [
-                  // Documents Tab
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: ListView.separated(
-                      itemCount: 5,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
-                      itemBuilder: (context, index) => Card(
-                        child: ListTile(
-                          leading: const Icon(Icons.insert_drive_file),
-                          title: Text('Document #${index + 1}'),
-                          subtitle: const Text('Uploaded on 2025-12-10'),
-                          trailing: const Icon(Icons.arrow_forward_ios),
-                          onTap: () => _showDocumentPreview(
-                            context,
-                            'Document #${index + 1}',
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // Profile Info Tab
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: ListView(
-                      children: [
-                        Card(
-                          child: ListTile(
-                            title: const Text('Phone'),
-                            subtitle: const Text('+234 803 456 7890'),
-                          ),
-                        ),
-                        Card(
-                          child: ListTile(
-                            title: const Text('Email'),
-                            subtitle: const Text('michael.ade@example.com'),
-                          ),
-                        ),
-                        Card(
-                          child: ListTile(
-                            title: const Text('Service Type'),
-                            subtitle: const Text('Delivery / Cleaning'),
-                          ),
-                        ),
-                        Card(
-                          child: ListTile(
-                            title: const Text('Joined Date'),
-                            subtitle: const Text('2024-03-12'),
-                          ),
-                        ),
-                        Card(
-                          child: ListTile(
-                            title: const Text('Jobs Completed'),
-                            subtitle: const Text('35'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // History / Notes Tab
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: ListView.separated(
-                      itemCount: 6,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
-                      itemBuilder: (context, index) => Card(
-                        child: ListTile(
-                          leading: const Icon(Icons.history),
-                          title: Text('Action #${index + 1}'),
-                          subtitle: Text(
-                            '2025-12-${(index + 1).toString().padLeft(2, '0')} - Example verification note.',
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+        body: detailAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, stack) => Center(child: Text('Error: $err')),
+          data: (caseDetail) => Column(
+            children: [
+              _buildHeader(context, caseDetail),
+              _buildTabBarView(caseDetail),
+            ],
+          ),
         ),
-        floatingActionButton: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            FloatingActionButton(
-              heroTag: 'approve',
-              onPressed: () => _showActionConfirmation(context, 'Approve'),
-              tooltip: 'Approve',
-              backgroundColor: Colors.green,
-              child: const Icon(Icons.check),
-            ),
-            const SizedBox(width: 16),
-            FloatingActionButton(
-              heroTag: 'reject',
-              onPressed: () => _showActionConfirmation(context, 'Reject'),
-              tooltip: 'Reject',
-              backgroundColor: Colors.red,
-              child: const Icon(Icons.close),
-            ),
-          ],
-        ),
+        floatingActionButton: detailAsync.when(
+          data: (caseDetail) => _buildActionButtons(context, ref, caseDetail),
+          loading: () => null,
+          error: (e,s) => null,
+        )
       ),
     );
+  }
+
+  Widget _buildHeader(BuildContext context, VerificationCase caseDetail) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      color: Colors.grey[100],
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const CircleAvatar(radius: 36, child: Icon(Icons.person, size: 36)),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  caseDetail.providerName ?? 'Provider ID: ${caseDetail.providerId}',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.orange[100],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text('Provider', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _getStatusColor(caseDetail.status).withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        caseDetail.status,
+                        style: TextStyle(color: _getStatusColor(caseDetail.status), fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabBarView(VerificationCase caseDetail) {
+    return Expanded(
+      child: TabBarView(
+        children: [
+          // Documents Tab (mock for now)
+          const Center(child: Text("Documents view not implemented")),
+          
+          // Profile Info Tab
+          ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Card(child: ListTile(title: const Text('Phone'), subtitle: Text(caseDetail.providerPhone ?? 'N/A'))),
+              Card(child: ListTile(title: const Text('Email'), subtitle: Text(caseDetail.providerEmail ?? 'N/A'))),
+              Card(child: ListTile(title: const Text('Joined Date'), subtitle: Text(caseDetail.createdAt.toIso8601String().split('T').first))),
+            ],
+          ),
+
+          // History / Notes Tab
+          ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              if(caseDetail.decisionReason != null)
+                Card(child: ListTile(title: const Text('Decision Reason'), subtitle: Text(caseDetail.decisionReason!))),
+              if(caseDetail.escalationReason != null)
+                Card(child: ListTile(title: const Text('Escalation Reason'), subtitle: Text(caseDetail.escalationReason!))),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButtons(BuildContext context, WidgetRef ref, VerificationCase caseDetail) {
+    final repo = ref.read(verificationRepositoryProvider);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        FloatingActionButton(
+          heroTag: 'approve',
+          onPressed: () => _performAction(context, ref, "Approve", () => repo.approveVerification(caseId)),
+          tooltip: 'Approve',
+          backgroundColor: Colors.green,
+          child: const Icon(Icons.check),
+        ),
+        const SizedBox(width: 16),
+        FloatingActionButton(
+          heroTag: 'reject',
+          onPressed: () => _showReasonDialog(context, ref, 'Reject Case', (reason) {
+            _performAction(context, ref, "Reject", () => repo.rejectVerification(caseId, reason));
+          }),
+          tooltip: 'Reject',
+          backgroundColor: Colors.red,
+          child: const Icon(Icons.close),
+        ),
+        const SizedBox(width: 16),
+        FloatingActionButton(
+          heroTag: 'escalate',
+          onPressed: () => _showReasonDialog(context, ref, 'Escalate Case', (reason) {
+            _performAction(context, ref, "Escalate", () => repo.escalateVerification(caseId, reason));
+          }),
+          tooltip: 'Escalate',
+          backgroundColor: Colors.orange,
+          child: const Icon(Icons.flag),
+        ),
+      ],
+    );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Colors.orange;
+      case 'verified':
+        return Colors.green;
+      case 'rejected':
+        return Colors.red;
+      case 'escalated':
+        return Colors.purple;
+      default:
+        return Colors.grey;
+    }
   }
 }
