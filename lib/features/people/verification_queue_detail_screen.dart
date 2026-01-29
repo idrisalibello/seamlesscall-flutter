@@ -25,8 +25,9 @@ class VerificationQueueDetailScreen extends ConsumerWidget {
           child: TextFormField(
             controller: reasonController,
             decoration: const InputDecoration(labelText: 'Reason'),
-            validator: (value) =>
-                value!.isEmpty ? 'Reason cannot be empty' : null,
+            validator: (value) => (value == null || value.trim().isEmpty)
+                ? 'Reason cannot be empty'
+                : null,
           ),
         ),
         actions: [
@@ -36,10 +37,15 @@ class VerificationQueueDetailScreen extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () {
-              if (formKey.currentState!.validate()) {
-                onConfirm(reasonController.text);
-                Navigator.pop(context);
-              }
+              if (!formKey.currentState!.validate()) return;
+
+              final reason = reasonController.text.trim();
+
+              // 1) close this dialog first
+              Navigator.pop(context);
+
+              // 2) then run next step after dialog closes
+              Future.microtask(() => onConfirm(reason));
             },
             child: const Text('Confirm'),
           ),
