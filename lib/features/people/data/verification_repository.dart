@@ -60,7 +60,7 @@ class VerificationCase {
     return VerificationCase(
       id: _reqInt(json['id'], 'id'),
       providerId: _reqInt(uid, 'user_id/provider_id'),
-      status: (json['status'] ?? '').toString(),
+      status: (json['kyc_status'] ?? '').toString(),
 
       decisionReason: json['decision_reason']?.toString(),
       escalationReason: json['escalation_reason']?.toString(),
@@ -86,11 +86,12 @@ class VerificationRepository {
   Future<List<VerificationCase>> getVerificationQueue() async {
     try {
       final response = await _dio.get('/api/v1/admin/verification-queue');
+      print('getVerificationQueue Response: ${response.data}');
       final data = response.data as List;
       return data.map((item) => VerificationCase.fromJson(item)).toList();
     } catch (e) {
       // TODO: Handle error properly
-      print(e);
+      print('Error in getVerificationQueue: $e');
       rethrow;
     }
   }
@@ -100,46 +101,52 @@ class VerificationRepository {
       final response = await _dio.get(
         '/api/v1/admin/verification-queue/$caseId',
       );
+      print('getVerificationCaseDetail Response: ${response.data}');
       return VerificationCase.fromJson(response.data);
     } catch (e) {
       // TODO: Handle error properly
-      print(e);
+      print('Error in getVerificationCaseDetail: $e');
       rethrow;
     }
   }
 
   Future<void> approveVerification(int caseId) async {
     try {
-      await _dio.post('/api/v1/admin/verification-queue/$caseId/approve');
+      final response = await _dio.post(
+        '/api/v1/admin/verification-queue/$caseId/approve',
+      );
+      print('approveVerification Response: ${response.data}');
     } catch (e) {
       // TODO: Handle error properly
-      print(e);
+      print('Error in approveVerification: $e');
       rethrow;
     }
   }
 
   Future<void> rejectVerification(int caseId, String reason) async {
     try {
-      await _dio.post(
+      final response = await _dio.post(
         '/api/v1/admin/verification-queue/$caseId/reject',
         data: {'reason': reason},
       );
+      print('rejectVerification Response: ${response.data}');
     } catch (e) {
       // TODO: Handle error properly
-      print(e);
+      print('Error in rejectVerification: $e');
       rethrow;
     }
   }
 
   Future<void> escalateVerification(int caseId, String reason) async {
     try {
-      await _dio.post(
+      final response = await _dio.post(
         '/api/v1/admin/verification-queue/$caseId/escalate',
         data: {'reason': reason},
       );
+      print('escalateVerification Response: ${response.data}');
     } catch (e) {
       // TODO: Handle error properly
-      print(e);
+      print('Error in escalateVerification: $e');
       rethrow;
     }
   }
