@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 class ProviderPerformanceDetailScreen extends StatelessWidget {
-  const ProviderPerformanceDetailScreen({super.key});
+  final int providerId;
+  final String providerName; // Add providerName
+  const ProviderPerformanceDetailScreen({super.key, required this.providerId, required this.providerName});
 
   // Mock function for dispute details
   void _showDisputeDetail(BuildContext context, int index) {

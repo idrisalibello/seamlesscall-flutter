@@ -7,14 +7,14 @@ part of 'job.dart';
 // **************************************************************************
 
 Job _$JobFromJson(Map<String, dynamic> json) => Job(
-  id: (json['id'] as num).toInt(),
-  customerId: (json['customer_id'] as num).toInt(),
+  id: _intFromJson(json['id']),
+  customerId: _intFromJson(json['customer_id']),
   customerName: json['customer_name'] as String,
   customerPhone: json['customer_phone'] as String?,
-  providerId: (json['provider_id'] as num?)?.toInt(),
+  providerId: _nullableIntFromJson(json['provider_id']),
   providerName: json['provider_name'] as String?,
   providerPhone: json['provider_phone'] as String?,
-  serviceId: (json['service_id'] as num).toInt(),
+  serviceId: _intFromJson(json['service_id']),
   serviceName: json['service_name'] as String,
   title: json['title'] as String,
   description: json['description'] as String?,
@@ -33,7 +33,7 @@ Job _$JobFromJson(Map<String, dynamic> json) => Job(
   escalatedAt: json['escalated_at'] == null
       ? null
       : DateTime.parse(json['escalated_at'] as String),
-  escalatedBy: (json['escalated_by'] as num?)?.toInt(),
+  escalatedBy: _nullableIntFromJson(json['escalated_by']),
   createdAt: DateTime.parse(json['created_at'] as String),
   updatedAt: DateTime.parse(json['updated_at'] as String),
 );

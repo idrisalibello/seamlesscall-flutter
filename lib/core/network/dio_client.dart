@@ -19,7 +19,7 @@ class DioClient {
   DioClient._internal() {
     dio = Dio(
       BaseOptions(
-        baseUrl: 'http://10.227.175.59/seamless_call/',
+        baseUrl: 'http://10.190.170.59/seamless_call/',
         connectTimeout: const Duration(seconds: 60),
         receiveTimeout: const Duration(seconds: 15),
         headers: {
@@ -28,6 +28,13 @@ class DioClient {
         },
       ),
     );
+
+    // Add logging interceptor first for comprehensive logging
+    dio.interceptors.add(LogInterceptor(
+      requestBody: true, // Log request body
+      responseBody: true, // Log response body
+      logPrint: (obj) => print(obj.toString()), // Use print directly
+    ));
 
     dio.interceptors.add(
       InterceptorsWrapper(
