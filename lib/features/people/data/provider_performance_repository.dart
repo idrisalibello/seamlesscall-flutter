@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import '../../../../core/network/dio_client.dart';
-import '../domain/provider_performance_models.dart'; // Assuming this exists with fromJson
+import '../domain/provider_performance_models.dart';
 
 class ProviderPerformanceRepository {
   final Dio _dio = DioClient().dio;
@@ -8,25 +8,34 @@ class ProviderPerformanceRepository {
   // Helper to build query parameters
   Map<String, dynamic> _buildQueryParams(String? from, String? to) {
     final Map<String, dynamic> params = {};
-    if (from != null && from.isNotEmpty) {
-      params['from'] = from;
-    }
-    if (to != null && to.isNotEmpty) {
-      params['to'] = to;
-    }
+    if (from != null && from.isNotEmpty) params['from'] = from;
+    if (to != null && to.isNotEmpty) params['to'] = to;
     return params;
   }
 
   // Helper for pagination parameters
   Map<String, dynamic> _buildPaginationParams(int? page, int? limit) {
     final Map<String, dynamic> params = {};
-    if (page != null) {
-      params['page'] = page;
-    }
-    if (limit != null) {
-      params['limit'] = limit;
-    }
+    if (page != null) params['page'] = page;
+    if (limit != null) params['limit'] = limit;
     return params;
+  }
+
+  // --- JSON coercion helpers (fix LinkedMap<dynamic,dynamic> on web) ---
+  Map<String, dynamic> _asStringMap(dynamic v) =>
+      Map<String, dynamic>.from(v as Map);
+
+  List<Map<String, dynamic>> _asStringMapList(dynamic v) =>
+      (v as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+
+  // Accept both shapes:
+  // 1) { data: ... }
+  // 2) ...
+  dynamic _unwrapData(dynamic responseData) {
+    if (responseData is Map && responseData.containsKey('data')) {
+      return responseData['data'];
+    }
+    return responseData;
   }
 
   Future<List<ProviderPerformanceSummary>> fetchProviderPerformanceList({
@@ -43,8 +52,11 @@ class ProviderPerformanceRepository {
         '/api/v1/admin/providers/performance',
         queryParameters: queryParams,
       );
-      final List<dynamic> data = response.data['data']; // Assume {"data": [...]}
-      return data
+
+      final raw = _unwrapData(response.data);
+      final list = _asStringMapList(raw);
+
+      return list
           .map((json) => ProviderPerformanceSummary.fromJson(json))
           .toList();
     } catch (e) {
@@ -61,16 +73,17 @@ class ProviderPerformanceRepository {
   }) async {
     try {
       final queryParams = _buildQueryParams(from, to);
-      if (bucket != null && bucket.isNotEmpty) {
-        queryParams['bucket'] = bucket;
-      }
+      if (bucket != null && bucket.isNotEmpty) queryParams['bucket'] = bucket;
 
       final response = await _dio.get(
         '/api/v1/admin/providers/$providerId/performance',
         queryParameters: queryParams,
       );
-      // Backend returns directly the object, not wrapped in "data" for detail
-      return ProviderPerformanceDetail.fromJson(response.data); 
+
+      final raw = _unwrapData(response.data);
+      final json = _asStringMap(raw);
+
+      return ProviderPerformanceDetail.fromJson(json);
     } catch (e) {
       print('Error in fetchProviderPerformanceDetail: $e');
       rethrow;
@@ -89,8 +102,14 @@ class ProviderPerformanceRepository {
         '/api/v1/admin/providers/$providerId/ratings',
         queryParameters: queryParams,
       );
-      // Backend returns directly the object, not wrapped in "data" for ratings
-      return ProviderRatingsDistribution.fromJson(response.data);
+
+      final dynamic raw =
+          (response.data is Map && (response.data as Map).containsKey('data'))
+          ? (response.data as Map)['data']
+          : response.data;
+
+      final Map<String, dynamic> json = Map<String, dynamic>.from(raw as Map);
+      return ProviderRatingsDistribution.fromJson(json);
     } catch (e) {
       print('Error in fetchProviderRatings: $e');
       rethrow;
@@ -112,8 +131,11 @@ class ProviderPerformanceRepository {
         '/api/v1/admin/providers/$providerId/disputes',
         queryParameters: queryParams,
       );
-      final List<dynamic> data = response.data['data']; // Assume {"data": [...]}
-      return data.map((json) => ProviderDispute.fromJson(json)).toList();
+
+      final raw = _unwrapData(response.data);
+      final list = _asStringMapList(raw);
+
+      return list.map((json) => ProviderDispute.fromJson(json)).toList();
     } catch (e) {
       print('Error in fetchProviderDisputes: $e');
       rethrow;

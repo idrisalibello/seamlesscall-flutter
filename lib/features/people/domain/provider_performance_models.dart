@@ -239,10 +239,10 @@ class ProviderDispute {
 
   factory ProviderDispute.fromJson(Map<String, dynamic> json) {
     return ProviderDispute(
-      id: (json['id'] ?? 0) as int,
-      jobId: (json['job_id'] ?? 0) as int,
-      providerId: (json['provider_id'] ?? 0) as int,
-      raisedBy: json['raised_by'] as int?,
+      id: _toInt(json['id']),
+      jobId: _toInt(json['job_id']),
+      providerId: _toInt(json['provider_id']),
+      raisedBy: _toNullableInt(json['raised_by']),
       status: (json['status'] ?? '') as String,
       reason: (json['reason'] ?? '') as String,
       resolvedAt: json['resolved_at'] == null
@@ -266,4 +266,18 @@ DateTime _toDateTime(dynamic v) {
   if (v is DateTime) return v;
   final s = v.toString();
   return DateTime.tryParse(s) ?? DateTime.fromMillisecondsSinceEpoch(0);
+}
+
+int _toInt(dynamic v, {int defaultValue = 0}) {
+  if (v == null) return defaultValue;
+  if (v is int) return v;
+  if (v is num) return v.toInt();
+  return int.tryParse(v.toString()) ?? defaultValue;
+}
+
+int? _toNullableInt(dynamic v) {
+  if (v == null) return null;
+  if (v is int) return v;
+  if (v is num) return v.toInt();
+  return int.tryParse(v.toString());
 }
