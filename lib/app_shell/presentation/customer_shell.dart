@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:seamlesscall/features/customer/presentation/customer_home_screen.dart';
 import 'package:seamlesscall/features/customer/presentation/customer_jobs_screen.dart';
@@ -14,27 +15,26 @@ class _CustomerShellState extends State<CustomerShell>
     with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
 
-  late AnimationController _controller;
-  late Animation<double> _glow;
+  late final AnimationController _controller;
+  late final Animation<double> _lift;
 
-  final List<Widget> _pages = [
-    const CustomerHomeScreen(),
-    const CustomerJobsScreen(),
-    const CustomerProfileScreen(),
+  final List<Widget> _pages = const [
+    CustomerHomeScreen(),
+    CustomerJobsScreen(),
+    CustomerProfileScreen(),
   ];
 
   @override
   void initState() {
     super.initState();
-
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 3),
+      duration: const Duration(milliseconds: 1400),
     )..repeat(reverse: true);
 
-    _glow = Tween<double>(
-      begin: 0.2,
-      end: 0.6,
+    _lift = Tween<double>(
+      begin: 0.0,
+      end: 6.0,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
@@ -46,55 +46,64 @@ class _CustomerShellState extends State<CustomerShell>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
     return AnimatedBuilder(
-      animation: _glow,
+      animation: _lift,
       builder: (context, _) {
         return Scaffold(
-          backgroundColor: const Color(0xFF0B1120),
+          backgroundColor: cs.background,
           body: _pages[_currentIndex],
 
-          bottomNavigationBar: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF0F1526),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.blue.withOpacity(_glow.value * 0.5),
-                  blurRadius: 22,
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-            margin: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-            padding: const EdgeInsets.symmetric(vertical: 8),
+          bottomNavigationBar: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: BottomNavigationBar(
-                currentIndex: _currentIndex,
-                onTap: (i) => setState(() => _currentIndex = i),
-
-                backgroundColor: const Color(0xFF0F1526),
-                elevation: 0,
-                selectedItemColor: Colors.blueAccent,
-                unselectedItemColor: Colors.white70,
-                type: BottomNavigationBarType.fixed,
-                selectedFontSize: 12,
-                unselectedFontSize: 12,
-
-                items: const [
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.dashboard_rounded),
-                    label: 'Dashboard',
+              borderRadius: BorderRadius.circular(22),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  decoration: BoxDecoration(
+                    color: cs.surface.withOpacity(0.92),
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: cs.outlineVariant.withOpacity(0.5),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.07),
+                        blurRadius: 18,
+                        offset: Offset(0, 10 - _lift.value),
+                      ),
+                    ],
                   ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.work_outline_rounded),
-                    label: 'Jobs',
+                  child: BottomNavigationBar(
+                    currentIndex: _currentIndex,
+                    onTap: (i) => setState(() => _currentIndex = i),
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
+                    type: BottomNavigationBarType.fixed,
+                    selectedItemColor: cs.primary,
+                    unselectedItemColor: cs.onSurface.withOpacity(0.55),
+                    selectedFontSize: 12,
+                    unselectedFontSize: 12,
+                    items: const [
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.dashboard_rounded),
+                        label: 'Home',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.work_outline_rounded),
+                        label: 'Jobs',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.person_outline_rounded),
+                        label: 'Profile',
+                      ),
+                    ],
                   ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.person_outline_rounded),
-                    label: 'Profile',
-                  ),
-                ],
+                ),
               ),
             ),
           ),

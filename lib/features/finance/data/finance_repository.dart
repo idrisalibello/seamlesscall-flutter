@@ -6,6 +6,152 @@ import 'package:seamlesscall/features/people/data/models/payout_entry.dart';
 class FinanceRepository {
   final DioClient _dioClient = DioClient();
 
+  /// GET /api/v1/admin/finance/commission-config
+  Future<Map<String, dynamic>> getCommissionConfig() async {
+    try {
+      final response = await _dioClient.dio.get(
+        '/api/v1/admin/finance/commission-config',
+      );
+      if (response.statusCode == 200) {
+        return Map<String, dynamic>.from(response.data['data'] as Map);
+      }
+      throw Exception(
+        'Failed to load commission config. Status code: ${response.statusCode}',
+      );
+    } on DioException catch (e) {
+      throw Exception(
+        'Failed to load commission config: ${e.response?.data['messages'] ?? e.message}',
+      );
+    } catch (e) {
+      throw Exception('An unexpected error occurred: $e');
+    }
+  }
+
+  /// PATCH /api/v1/admin/finance/commission-config
+  Future<Map<String, dynamic>> updateCommissionConfig({
+    required double rate,
+  }) async {
+    try {
+      final response = await _dioClient.dio.patch(
+        '/api/v1/admin/finance/commission-config',
+        data: {'rate': rate},
+      );
+      if (response.statusCode == 200) {
+        return Map<String, dynamic>.from(response.data['data'] as Map);
+      }
+      throw Exception(
+        'Failed to update commission config. Status code: ${response.statusCode}',
+      );
+    } on DioException catch (e) {
+      throw Exception(
+        'Failed to update commission config: ${e.response?.data['messages'] ?? e.message}',
+      );
+    } catch (e) {
+      throw Exception('An unexpected error occurred: $e');
+    }
+  }
+
+  /// GET /api/v1/admin/finance/commissions
+  Future<Map<String, dynamic>> getPlatformCommissions({
+    required String fromDate,
+    required String toDate,
+    required int page,
+    required int pageSize,
+    int? providerId,
+    String? status, // confirmed|unconfirmed|null
+  }) async {
+    try {
+      final qp = <String, dynamic>{
+        'from_date': fromDate,
+        'to_date': toDate,
+        'page': page,
+        'page_size': pageSize,
+        'provider_id': providerId,
+        'status': status,
+      }..removeWhere((k, v) => v == null || v == '');
+
+      final response = await _dioClient.dio.get(
+        '/api/v1/admin/finance/commissions',
+        queryParameters: qp,
+      );
+
+      if (response.statusCode == 200) {
+        return Map<String, dynamic>.from(response.data['data'] as Map);
+      }
+
+      throw Exception(
+        'Failed to load platform commissions. Status code: ${response.statusCode}',
+      );
+    } on DioException catch (e) {
+      throw Exception(
+        'Failed to load platform commissions: ${e.response?.data['messages'] ?? e.message}',
+      );
+    } catch (e) {
+      throw Exception('An unexpected error occurred: $e');
+    }
+  }
+
+  /// GET /api/v1/admin/finance/commissions/summary
+  Future<Map<String, dynamic>> getPlatformCommissionsSummary({
+    required String fromDate,
+    required String toDate,
+    int? providerId,
+    String? status, // confirmed|unconfirmed|null
+  }) async {
+    try {
+      final qp = <String, dynamic>{
+        'from_date': fromDate,
+        'to_date': toDate,
+        'provider_id': providerId,
+        'status': status,
+      }..removeWhere((k, v) => v == null || v == '');
+
+      final response = await _dioClient.dio.get(
+        '/api/v1/admin/finance/commissions/summary',
+        queryParameters: qp,
+      );
+
+      if (response.statusCode == 200) {
+        return Map<String, dynamic>.from(response.data['data'] as Map);
+      }
+
+      throw Exception(
+        'Failed to load commission summary. Status code: ${response.statusCode}',
+      );
+    } on DioException catch (e) {
+      throw Exception(
+        'Failed to load commission summary: ${e.response?.data['messages'] ?? e.message}',
+      );
+    } catch (e) {
+      throw Exception('An unexpected error occurred: $e');
+    }
+  }
+
+  /// PATCH /api/v1/admin/finance/commissions/{earningId}/confirm
+  Future<Map<String, dynamic>> confirmCommission({
+    required int earningId,
+  }) async {
+    try {
+      final response = await _dioClient.dio.post(
+        'api/v1/admin/finance/commissions/$earningId/confirm',
+      );
+
+      if (response.statusCode == 200) {
+        return Map<String, dynamic>.from(response.data['data'] as Map);
+      }
+
+      throw Exception(
+        'Failed to confirm commission. Status code: ${response.statusCode}',
+      );
+    } on DioException catch (e) {
+      throw Exception(
+        'Failed to confirm commission: ${e.response?.data['messages'] ?? e.message}',
+      );
+    } catch (e) {
+      throw Exception('An unexpected error occurred: $e');
+    }
+  }
+
   Future<List<Provider>> getProviders() async {
     try {
       final response = await _dioClient.dio.get('/api/v1/admin/providers');
@@ -60,10 +206,6 @@ class FinanceRepository {
   }
 
   /// Finance -> Provider Payouts (global, filter-driven)
-  ///
-  /// GET /api/v1/admin/finance/payouts
-  /// Required: from_date, to_date
-  /// Optional: provider_id, status
   Future<Map<String, dynamic>> getFinancePayouts({
     required String fromDate,
     required String toDate,
@@ -199,43 +341,3 @@ class FinanceRepository {
     }
   }
 }
-
-// import 'package:dio/dio.dart';
-// import 'package:seamlesscall/core/network/dio_client.dart';
-
-// class FinanceRepository {
-//   final DioClient _dioClient = DioClient();
-
-//   Future<Map<String, dynamic>> getEarningsOverview({
-//     required String fromDate, // YYYY-MM-DD
-//     required String toDate, // YYYY-MM-DD
-//     required int page,
-//     required int pageSize,
-//   }) async {
-//     try {
-//       final response = await _dioClient.dio.get(
-//         '/api/v1/admin/finance/earnings',
-//         queryParameters: {
-//           'from_date': fromDate,
-//           'to_date': toDate,
-//           'page': page,
-//           'page_size': pageSize,
-//         },
-//       );
-
-//       if (response.statusCode == 200) {
-//         return Map<String, dynamic>.from(response.data['data'] as Map);
-//       }
-
-//       throw Exception(
-//         'Failed to load earnings overview. Status code: ${response.statusCode}',
-//       );
-//     } on DioException catch (e) {
-//       throw Exception(
-//         'Failed to load earnings overview: ${e.response?.data['messages'] ?? e.message}',
-//       );
-//     } catch (e) {
-//       throw Exception('An unexpected error occurred: $e');
-//     }
-//   }
-// }
