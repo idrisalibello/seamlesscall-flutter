@@ -340,4 +340,290 @@ class FinanceRepository {
       throw Exception('An unexpected error occurred: $e');
     }
   }
+
+  /// GET /api/v1/admin/finance/refunds
+  Future<Map<String, dynamic>> getFinanceRefunds({
+    required String fromDate,
+    required String toDate,
+    required int page,
+    required int pageSize,
+    int? userId,
+    String? status, // pending|approved|rejected|null
+  }) async {
+    try {
+      final qp = <String, dynamic>{
+        'from_date': fromDate,
+        'to_date': toDate,
+        'page': page,
+        'page_size': pageSize,
+        'user_id': userId,
+        'status': status,
+      }..removeWhere((k, v) => v == null || v == '');
+
+      final response = await _dioClient.dio.get(
+        '/api/v1/admin/finance/refunds',
+        queryParameters: qp,
+      );
+
+      if (response.statusCode == 200) {
+        return Map<String, dynamic>.from(response.data['data'] as Map);
+      }
+
+      throw Exception(
+        'Failed to load refunds. Status code: ${response.statusCode}',
+      );
+    } on DioException catch (e) {
+      throw Exception(
+        'Failed to load refunds: ${e.response?.data['messages'] ?? e.message}',
+      );
+    } catch (e) {
+      throw Exception('An unexpected error occurred: $e');
+    }
+  }
+
+  /// GET /api/v1/admin/finance/refunds/summary
+  Future<Map<String, dynamic>> getFinanceRefundsSummary({
+    required String fromDate,
+    required String toDate,
+    int? userId,
+    String? status,
+  }) async {
+    try {
+      final qp = <String, dynamic>{
+        'from_date': fromDate,
+        'to_date': toDate,
+        'user_id': userId,
+        'status': status,
+      }..removeWhere((k, v) => v == null || v == '');
+
+      final response = await _dioClient.dio.get(
+        '/api/v1/admin/finance/refunds/summary',
+        queryParameters: qp,
+      );
+
+      if (response.statusCode == 200) {
+        return Map<String, dynamic>.from(response.data['data'] as Map);
+      }
+
+      throw Exception(
+        'Failed to load refunds summary. Status code: ${response.statusCode}',
+      );
+    } on DioException catch (e) {
+      throw Exception(
+        'Failed to load refunds summary: ${e.response?.data['messages'] ?? e.message}',
+      );
+    } catch (e) {
+      throw Exception('An unexpected error occurred: $e');
+    }
+  }
+
+  /// PATCH /api/v1/admin/finance/refunds/{id}/status
+  Future<Map<String, dynamic>> updateRefundStatus({
+    required int refundId,
+    required String status, // approved|rejected
+  }) async {
+    try {
+      final response = await _dioClient.dio.patch(
+        '/api/v1/admin/finance/refunds/$refundId/status',
+        data: {'status': status},
+      );
+
+      if (response.statusCode == 200) {
+        return Map<String, dynamic>.from(response.data['data'] as Map);
+      }
+
+      throw Exception(
+        'Failed to update refund status. Status code: ${response.statusCode}',
+      );
+    } on DioException catch (e) {
+      throw Exception(
+        'Failed to update refund status: ${e.response?.data['messages'] ?? e.message}',
+      );
+    } catch (e) {
+      throw Exception('An unexpected error occurred: $e');
+    }
+  }
+
+  /// GET /api/v1/admin/finance/disputes
+  Future<Map<String, dynamic>> getFinanceDisputes({
+    required String fromDate,
+    required String toDate,
+    required int page,
+    required int pageSize,
+    int? providerId,
+    String? status, // pending|resolved|dismissed|null
+  }) async {
+    try {
+      final qp = <String, dynamic>{
+        'from_date': fromDate,
+        'to_date': toDate,
+        'page': page,
+        'page_size': pageSize,
+        'provider_id': providerId,
+        'status': status,
+      }..removeWhere((k, v) => v == null || v == '');
+
+      final response = await _dioClient.dio.get(
+        '/api/v1/admin/finance/disputes',
+        queryParameters: qp,
+      );
+
+      if (response.statusCode == 200) {
+        return Map<String, dynamic>.from(response.data['data'] as Map);
+      }
+
+      throw Exception(
+        'Failed to load disputes. Status code: ${response.statusCode}',
+      );
+    } on DioException catch (e) {
+      throw Exception(
+        'Failed to load disputes: ${e.response?.data['messages'] ?? e.message}',
+      );
+    } catch (e) {
+      throw Exception('An unexpected error occurred: $e');
+    }
+  }
+
+  /// GET /api/v1/admin/finance/disputes/summary
+  Future<Map<String, dynamic>> getFinanceDisputesSummary({
+    required String fromDate,
+    required String toDate,
+    int? providerId,
+    String? status,
+  }) async {
+    try {
+      final qp = <String, dynamic>{
+        'from_date': fromDate,
+        'to_date': toDate,
+        'provider_id': providerId,
+        'status': status,
+      }..removeWhere((k, v) => v == null || v == '');
+
+      final response = await _dioClient.dio.get(
+        '/api/v1/admin/finance/disputes/summary',
+        queryParameters: qp,
+      );
+
+      if (response.statusCode == 200) {
+        return Map<String, dynamic>.from(response.data['data'] as Map);
+      }
+
+      throw Exception(
+        'Failed to load disputes summary. Status code: ${response.statusCode}',
+      );
+    } on DioException catch (e) {
+      throw Exception(
+        'Failed to load disputes summary: ${e.response?.data['messages'] ?? e.message}',
+      );
+    } catch (e) {
+      throw Exception('An unexpected error occurred: $e');
+    }
+  }
+
+  /// PATCH /api/v1/admin/finance/disputes/{id}/status
+  Future<Map<String, dynamic>> updateDisputeStatus({
+    required int disputeId,
+    required String status, // resolved|dismissed
+  }) async {
+    try {
+      final response = await _dioClient.dio.patch(
+        '/api/v1/admin/finance/disputes/$disputeId/status',
+        data: {'status': status},
+      );
+
+      if (response.statusCode == 200) {
+        return Map<String, dynamic>.from(response.data['data'] as Map);
+      }
+
+      throw Exception(
+        'Failed to update dispute status. Status code: ${response.statusCode}',
+      );
+    } on DioException catch (e) {
+      throw Exception(
+        'Failed to update dispute status: ${e.response?.data['messages'] ?? e.message}',
+      );
+    } catch (e) {
+      throw Exception('An unexpected error occurred: $e');
+    }
+  }
+
+  /// GET /api/v1/admin/finance/ledger
+  Future<Map<String, dynamic>> getFinanceLedger({
+    required String fromDate,
+    required String toDate,
+    required int page,
+    required int pageSize,
+    int? userId,
+    String? transactionType,
+    String? reference,
+  }) async {
+    try {
+      final qp = <String, dynamic>{
+        'from_date': fromDate,
+        'to_date': toDate,
+        'page': page,
+        'page_size': pageSize,
+        'user_id': userId,
+        'transaction_type': transactionType,
+        'reference': reference,
+      }..removeWhere((k, v) => v == null || v == '');
+
+      final response = await _dioClient.dio.get(
+        '/api/v1/admin/finance/ledger',
+        queryParameters: qp,
+      );
+
+      if (response.statusCode == 200) {
+        return Map<String, dynamic>.from(response.data['data'] as Map);
+      }
+
+      throw Exception(
+        'Failed to load ledger. Status code: ${response.statusCode}',
+      );
+    } on DioException catch (e) {
+      throw Exception(
+        'Failed to load ledger: ${e.response?.data['messages'] ?? e.message}',
+      );
+    } catch (e) {
+      throw Exception('An unexpected error occurred: $e');
+    }
+  }
+
+  /// GET /api/v1/admin/finance/ledger/summary
+  Future<Map<String, dynamic>> getFinanceLedgerSummary({
+    required String fromDate,
+    required String toDate,
+    int? userId,
+    String? transactionType,
+    String? reference,
+  }) async {
+    try {
+      final qp = <String, dynamic>{
+        'from_date': fromDate,
+        'to_date': toDate,
+        'user_id': userId,
+        'transaction_type': transactionType,
+        'reference': reference,
+      }..removeWhere((k, v) => v == null || v == '');
+
+      final response = await _dioClient.dio.get(
+        '/api/v1/admin/finance/ledger/summary',
+        queryParameters: qp,
+      );
+
+      if (response.statusCode == 200) {
+        return Map<String, dynamic>.from(response.data['data'] as Map);
+      }
+
+      throw Exception(
+        'Failed to load ledger summary. Status code: ${response.statusCode}',
+      );
+    } on DioException catch (e) {
+      throw Exception(
+        'Failed to load ledger summary: ${e.response?.data['messages'] ?? e.message}',
+      );
+    } catch (e) {
+      throw Exception('An unexpected error occurred: $e');
+    }
+  }
 }

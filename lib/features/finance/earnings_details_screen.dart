@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:seamlesscall/features/finance/data/finance_repository.dart';
+import 'package:seamlesscall/features/finance/ledger_screen.dart';
 import '../../common/widgets/main_layout.dart';
 
 class EarningsDetailsScreen extends StatefulWidget {
@@ -159,7 +160,14 @@ class _EarningsDetailsScreenState extends State<EarningsDetailsScreen> {
           icon: const Icon(Icons.receipt_long),
           label: const Text('View Ledger'),
           onPressed: () {
-            // navigate to ledger filtered by reference
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => LedgerScreen(
+                  initialReference: '${earning['reference'] ?? ''}',
+                ),
+              ),
+            );
           },
         ),
         const SizedBox(width: 12),

@@ -82,7 +82,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                             "Track jobs like deliveries and chat with technicians.",
                         // Use local asset (avoid web 404 issues)
                         imageAsset:
-                            "assets/images/customer/photo-1621905252507-b35492cc74b4.jpg",
+                            "assets/images/customer/photo-1621905252507-b35492cc74b4.png",
                         primaryCtaText: hasOngoingJob
                             ? "Track Job"
                             : "Book a Service",
