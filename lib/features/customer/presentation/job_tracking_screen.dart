@@ -47,6 +47,31 @@ class _JobTrackingScreenState extends State<JobTrackingScreen> {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 2, 16, 10),
+                child: _QuoteProformaCard(
+                  quote: model.quote, // add this field to model (below)
+                  onApproveAndPay: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Approve & Pay: hook to gateway later"),
+                      ),
+                    );
+                  },
+                  onRequestChange: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          "Request change: hook to chat/support later",
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 2, 16, 10),
                 child: _MiniMapPreview(
                   pickupLabel: model.pickupLabel,
                   destinationLabel: model.destinationLabel,
@@ -225,6 +250,261 @@ class _TopBar extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _QuoteProformaCard extends StatelessWidget {
+  final _QuoteProforma quote;
+  final VoidCallback onApproveAndPay;
+  final VoidCallback onRequestChange;
+
+  const _QuoteProformaCard({
+    required this.quote,
+    required this.onApproveAndPay,
+    required this.onRequestChange,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    Color statusColor;
+    String statusText;
+    switch (quote.state) {
+      case _QuoteState.pending:
+        statusColor = Colors.orange;
+        statusText = "Pending";
+        break;
+      case _QuoteState.ready:
+        statusColor = Colors.blue;
+        statusText = "Ready";
+        break;
+      case _QuoteState.approved:
+        statusColor = Colors.green;
+        statusText = "Approved";
+        break;
+      case _QuoteState.rejected:
+        statusColor = Colors.red;
+        statusText = "Rejected";
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: cs.outlineVariant.withOpacity(0.6)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header row
+          Row(
+            children: [
+              Container(
+                height: 42,
+                width: 42,
+                decoration: BoxDecoration(
+                  color: cs.primaryContainer.withOpacity(0.65),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(Icons.receipt_long_rounded, color: cs.primary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Quote / Proforma",
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: cs.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      "Expected range: ${quote.bandText}",
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: cs.onSurface.withOpacity(0.65),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  statusText,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    color: statusColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          // Lines
+          _QuoteLine(
+            label: "Inspection fee",
+            value: quote.inspectionFeeText,
+            strong: true,
+          ),
+          const SizedBox(height: 8),
+
+          ...quote.lines.map(
+            (l) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _QuoteLine(label: l.label, value: l.value),
+            ),
+          ),
+
+          const Divider(height: 20),
+
+          _QuoteLine(label: "Total", value: quote.totalText, strong: true),
+
+          const SizedBox(height: 12),
+
+          // Rules note (Nigeria trust)
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: cs.primaryContainer.withOpacity(0.20),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: cs.primary.withOpacity(0.12)),
+            ),
+            child: Text(
+              "No price changes outside the app. If adjustments are needed, you’ll approve them here before payment.",
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: cs.onSurface.withOpacity(0.75),
+                height: 1.2,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Actions
+          Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: quote.state == _QuoteState.ready
+                      ? onApproveAndPay
+                      : null,
+                  child: Ink(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: quote.state == _QuoteState.ready
+                          ? cs.primary
+                          : cs.onSurface.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Center(
+                      child: Text(
+                        "Approve & Pay",
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          color: quote.state == _QuoteState.ready
+                              ? cs.onPrimary
+                              : cs.onSurface.withOpacity(0.45),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: onRequestChange,
+                child: Ink(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: cs.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: cs.outlineVariant.withOpacity(0.8),
+                    ),
+                  ),
+                  child: Text(
+                    "Request change",
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: cs.onSurface.withOpacity(0.78),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuoteLine extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool strong;
+
+  const _QuoteLine({
+    required this.label,
+    required this.value,
+    this.strong = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: strong ? FontWeight.w900 : FontWeight.w700,
+              color: cs.onSurface.withOpacity(strong ? 0.85 : 0.70),
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: theme.textTheme.bodySmall?.copyWith(
+            fontWeight: strong ? FontWeight.w900 : FontWeight.w800,
+            color: cs.onSurface.withOpacity(0.82),
           ),
         ),
       ],
@@ -1038,6 +1318,8 @@ class _TrackingModel {
   final double techRating;
   final int techJobs;
 
+  // 🔴 NEW (money + routing context)
+  final _QuoteProforma quote;
   final String pickupLabel;
   final String destinationLabel;
   final String distanceText;
@@ -1055,15 +1337,25 @@ class _TrackingModel {
     required this.techName,
     required this.techRating,
     required this.techJobs,
+
+    // 🔴 ADD THESE
+    required this.quote,
     required this.pickupLabel,
     required this.destinationLabel,
     required this.distanceText,
     required this.updates,
+
     required this.primaryActionText,
     required this.steps,
   });
 
   static _TrackingModel mock(String jobId) {
+    final _QuoteProforma quote;
+    final String pickupLabel;
+    final String destinationLabel;
+    final String distanceText;
+    final List<_TrackingUpdate> updates;
+
     return _TrackingModel(
       jobId: jobId,
       serviceName: "AC Repair",
@@ -1076,10 +1368,26 @@ class _TrackingModel {
       techRating: 4.8,
       techJobs: 127,
 
+      // 🔴 QUOTE / PROFORMA
+      quote: const _QuoteProforma(
+        state: _QuoteState.ready,
+        bandText: "₦8,000 – ₦12,000",
+        inspectionFeeText: "₦2,000",
+        lines: [
+          _QuoteLineItem(label: "Base service", value: "₦8,000"),
+          _QuoteLineItem(label: "Extra unit (1)", value: "₦2,000"),
+          _QuoteLineItem(label: "Emergency surcharge", value: "₦1,000"),
+          _QuoteLineItem(label: "Materials", value: "Excluded"),
+        ],
+        totalText: "₦11,000",
+      ),
+
+      // 🔴 MAP CONTEXT
       pickupLabel: "Your address (Customer location)",
       destinationLabel: "Technician route to you",
       distanceText: "6.2 km",
 
+      // 🔴 UPDATE LOG
       updates: const [
         _TrackingUpdate(
           timeText: "09:10",
@@ -1140,4 +1448,28 @@ class _TrackingModel {
       ],
     );
   }
+}
+
+enum _QuoteState { pending, ready, approved, rejected }
+
+class _QuoteLineItem {
+  final String label;
+  final String value;
+  const _QuoteLineItem({required this.label, required this.value});
+}
+
+class _QuoteProforma {
+  final _QuoteState state;
+  final String bandText; // e.g. ₦8,000–₦12,000
+  final String inspectionFeeText; // e.g. ₦2,000
+  final List<_QuoteLineItem> lines;
+  final String totalText; // e.g. ₦11,000
+
+  const _QuoteProforma({
+    required this.state,
+    required this.bandText,
+    required this.inspectionFeeText,
+    required this.lines,
+    required this.totalText,
+  });
 }
