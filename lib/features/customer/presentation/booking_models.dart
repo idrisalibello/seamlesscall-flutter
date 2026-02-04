@@ -4,6 +4,9 @@ enum BookingType { asap, scheduled }
 
 @immutable
 class BookingDraft {
+  /// Optional for now. We'll pass it when Service Details has real IDs wired.
+  final int? serviceId;
+
   final String serviceName;
   final BookingType type;
   final DateTime? scheduledAt;
@@ -11,6 +14,7 @@ class BookingDraft {
   final String note;
 
   const BookingDraft({
+    this.serviceId, // ✅ not required
     required this.serviceName,
     required this.type,
     required this.scheduledAt,
@@ -19,6 +23,7 @@ class BookingDraft {
   });
 
   BookingDraft copyWith({
+    int? serviceId,
     String? serviceName,
     BookingType? type,
     DateTime? scheduledAt,
@@ -26,6 +31,7 @@ class BookingDraft {
     String? note,
   }) {
     return BookingDraft(
+      serviceId: serviceId ?? this.serviceId,
       serviceName: serviceName ?? this.serviceName,
       type: type ?? this.type,
       scheduledAt: scheduledAt ?? this.scheduledAt,

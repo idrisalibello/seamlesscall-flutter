@@ -2,6 +2,9 @@ import 'package:dio/dio.dart';
 import 'package:seamlesscall/core/network/dio_client.dart';
 import 'package:seamlesscall/features/config/data/models/category_model.dart'; // Added
 import 'package:seamlesscall/features/config/data/models/service_model.dart'; // Added
+import 'package:seamlesscall/features/config/data/models/pricing_profile_model.dart';
+import 'package:seamlesscall/features/config/data/models/pricing_adjustment_model.dart';
+import 'package:seamlesscall/features/config/data/models/pricing_profile_model.dart';
 
 class AdminRepository {
   final DioClient _dioClient = DioClient();
@@ -234,20 +237,23 @@ class AdminRepository {
 
   Future<List<Service>> getServicesByCategory(int categoryId) async {
     try {
-      final response = await _dioClient.dio.get('/api/v1/admin/categories/$categoryId/services');
+      final response = await _dioClient.dio.get(
+        '/api/v1/admin/categories/$categoryId/services',
+      );
       if (response.statusCode == 200) {
         return (response.data['data'] as List)
             .map((e) => Service.fromMap(e))
             .toList();
       } else {
         throw Exception(
-            'Failed to load services. Status code: ${response.statusCode}');
+          'Failed to load services. Status code: ${response.statusCode}',
+        );
       }
     } on DioException catch (e) {
       throw Exception(
-          'Failed to load services: ${e.response?.data['messages'] ?? e.message}');
-    }
-    catch (e) {
+        'Failed to load services: ${e.response?.data['messages'] ?? e.message}',
+      );
+    } catch (e) {
       throw Exception('An unexpected error occurred: $e');
     }
   }
@@ -306,5 +312,204 @@ class AdminRepository {
     } catch (e) {
       throw Exception('An unexpected error occurred: $e');
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Configurations -> Pricing (Controlled Flex Pricing)
+  // ---------------------------------------------------------------------------
+
+  Future<Map<String, dynamic>> getPricingSummary() async {
+    final response = await _dioClient.dio.get('/api/v1/admin/pricing/summary');
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(response.data['data'] ?? {});
+    }
+    throw Exception(
+      'Failed to load pricing summary. Status code: ${response.statusCode}',
+    );
+  }
+
+  Future<Map<String, dynamic>> getPricingProfiles({
+    int page = 1,
+    int pageSize = 20,
+    int? categoryId,
+    int? serviceId,
+    String? status,
+    String? pricingBasis,
+    String? q,
+  }) async {
+    final query = <String, dynamic>{'page': page, 'page_size': pageSize};
+    if (categoryId != null) query['category_id'] = categoryId;
+    if (serviceId != null) query['service_id'] = serviceId;
+    if (status != null && status.isNotEmpty) query['status'] = status;
+    if (pricingBasis != null && pricingBasis.isNotEmpty)
+      query['pricing_basis'] = pricingBasis;
+    if (q != null && q.isNotEmpty) query['q'] = q;
+
+    final response = await _dioClient.dio.get(
+      '/api/v1/admin/pricing/profiles',
+      queryParameters: query,
+    );
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(response.data['data'] ?? {});
+    }
+    throw Exception(
+      'Failed to load pricing profiles. Status code: ${response.statusCode}',
+    );
+  }
+
+  Future<PricingProfile> getPricingProfile(int profileId) async {
+    final response = await _dioClient.dio.get(
+      '/api/v1/admin/pricing/profiles/$profileId',
+    );
+    if (response.statusCode == 200) {
+      return PricingProfile.fromMap(
+        Map<String, dynamic>.from(response.data['data'] ?? {}),
+      );
+    }
+    throw Exception(
+      'Failed to load pricing profile. Status code: ${response.statusCode}',
+    );
+  }
+
+  Future<PricingProfile> createPricingProfile(PricingProfile profile) async {
+    final response = await _dioClient.dio.post(
+      '/api/v1/admin/pricing/profiles',
+      data: profile.toPayload(),
+    );
+    if (response.statusCode == 201 || response.statusCode == 200) {
+      return PricingProfile.fromMap(
+        Map<String, dynamic>.from(response.data['data'] ?? {}),
+      );
+    }
+    throw Exception(
+      'Failed to create pricing profile. Status code: ${response.statusCode}',
+    );
+  }
+
+  Future<PricingProfile> updatePricingProfile(
+    int profileId,
+    Map<String, dynamic> payload,
+  ) async {
+    final response = await _dioClient.dio.put(
+      '/api/v1/admin/pricing/profiles/$profileId',
+      data: payload,
+    );
+    if (response.statusCode == 200) {
+      return PricingProfile.fromMap(
+        Map<String, dynamic>.from(response.data['data'] ?? {}),
+      );
+    }
+    throw Exception(
+      'Failed to update pricing profile. Status code: ${response.statusCode}',
+    );
+  }
+
+  Future<PricingProfile> updatePricingProfileStatus(
+    int profileId,
+    String status,
+  ) async {
+    final response = await _dioClient.dio.patch(
+      '/api/v1/admin/pricing/profiles/$profileId/status',
+      data: {'status': status},
+    );
+    if (response.statusCode == 200) {
+      return PricingProfile.fromMap(
+        Map<String, dynamic>.from(response.data['data'] ?? {}),
+      );
+    }
+    throw Exception(
+      'Failed to update pricing profile status. Status code: ${response.statusCode}',
+    );
+  }
+
+  Future<void> deletePricingProfile(int profileId) async {
+    final response = await _dioClient.dio.delete(
+      '/api/v1/admin/pricing/profiles/$profileId',
+    );
+    if (response.statusCode == 200 || response.statusCode == 204) {
+      return;
+    }
+    throw Exception(
+      'Failed to delete pricing profile. Status code: ${response.statusCode}',
+    );
+  }
+
+  Future<List<PricingAdjustment>> getPricingAdjustments(int profileId) async {
+    final response = await _dioClient.dio.get(
+      '/api/v1/admin/pricing/profiles/$profileId/adjustments',
+    );
+    if (response.statusCode == 200) {
+      final list = List<Map<String, dynamic>>.from(response.data['data'] ?? []);
+      return list.map((m) => PricingAdjustment.fromMap(m)).toList();
+    }
+    throw Exception(
+      'Failed to load pricing adjustments. Status code: ${response.statusCode}',
+    );
+  }
+
+  Future<PricingAdjustment> createPricingAdjustment(
+    int profileId,
+    PricingAdjustment adj,
+  ) async {
+    final response = await _dioClient.dio.post(
+      '/api/v1/admin/pricing/profiles/$profileId/adjustments',
+      data: adj.toPayload(),
+    );
+    if (response.statusCode == 201 || response.statusCode == 200) {
+      return PricingAdjustment.fromMap(
+        Map<String, dynamic>.from(response.data['data'] ?? {}),
+      );
+    }
+    throw Exception(
+      'Failed to create pricing adjustment. Status code: ${response.statusCode}',
+    );
+  }
+
+  Future<PricingAdjustment> updatePricingAdjustment(
+    int adjustmentId,
+    Map<String, dynamic> payload,
+  ) async {
+    final response = await _dioClient.dio.put(
+      '/api/v1/admin/pricing/adjustments/$adjustmentId',
+      data: payload,
+    );
+    if (response.statusCode == 200) {
+      return PricingAdjustment.fromMap(
+        Map<String, dynamic>.from(response.data['data'] ?? {}),
+      );
+    }
+    throw Exception(
+      'Failed to update pricing adjustment. Status code: ${response.statusCode}',
+    );
+  }
+
+  Future<PricingAdjustment> updatePricingAdjustmentStatus(
+    int adjustmentId,
+    String status,
+  ) async {
+    final response = await _dioClient.dio.patch(
+      '/api/v1/admin/pricing/adjustments/$adjustmentId/status',
+      data: {'status': status},
+    );
+    if (response.statusCode == 200) {
+      return PricingAdjustment.fromMap(
+        Map<String, dynamic>.from(response.data['data'] ?? {}),
+      );
+    }
+    throw Exception(
+      'Failed to update pricing adjustment status. Status code: ${response.statusCode}',
+    );
+  }
+
+  Future<void> deletePricingAdjustment(int adjustmentId) async {
+    final response = await _dioClient.dio.delete(
+      '/api/v1/admin/pricing/adjustments/$adjustmentId',
+    );
+    if (response.statusCode == 200 || response.statusCode == 204) {
+      return;
+    }
+    throw Exception(
+      'Failed to delete pricing adjustment. Status code: ${response.statusCode}',
+    );
   }
 }
