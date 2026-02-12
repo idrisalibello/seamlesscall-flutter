@@ -46,6 +46,19 @@ class _PricingEditScreenState extends State<PricingEditScreen> {
   bool _requireAdminReview = false;
   final TextEditingController _autoFlagCtrl = TextEditingController(text: '0');
 
+  // Scalable jobs: interpret band as per-unit rather than per-job.
+  bool _bandIsPerUnit = false;
+  final TextEditingController _unitLabelCtrl = TextEditingController();
+
+  // Alert-only thresholds (no hard restriction).
+  final TextEditingController _warnVarianceCtrl = TextEditingController(
+    text: '25',
+  );
+  final TextEditingController _criticalVarianceCtrl = TextEditingController(
+    text: '60',
+  );
+  bool _requireReasonOverCritical = true;
+
   PricingProfile? _existing;
 
   @override
@@ -80,6 +93,13 @@ class _PricingEditScreenState extends State<PricingEditScreen> {
         _maxOverrideCtrl.text = _existing!.maxOverridePercent.toString();
         _requireAdminReview = _existing!.requireAdminReview == 1;
         _autoFlagCtrl.text = _existing!.autoFlagDisputeThreshold.toString();
+
+        _bandIsPerUnit = _existing!.bandIsPerUnit == 1;
+        _unitLabelCtrl.text = _existing!.unitLabel ?? '';
+        _warnVarianceCtrl.text = _existing!.warnVariancePercent.toString();
+        _criticalVarianceCtrl.text = _existing!.criticalVariancePercent
+            .toString();
+        _requireReasonOverCritical = _existing!.requireReasonOverCritical == 1;
 
         // Best-effort derive category from joined info; otherwise find via services list later.
         _categoryId = _existing!.categoryId;
@@ -117,6 +137,9 @@ class _PricingEditScreenState extends State<PricingEditScreen> {
     _notesProviderCtrl.dispose();
     _maxOverrideCtrl.dispose();
     _autoFlagCtrl.dispose();
+    _unitLabelCtrl.dispose();
+    _warnVarianceCtrl.dispose();
+    _criticalVarianceCtrl.dispose();
     super.dispose();
   }
 
@@ -183,6 +206,14 @@ class _PricingEditScreenState extends State<PricingEditScreen> {
         maxOverridePercent: int.tryParse(_maxOverrideCtrl.text.trim()) ?? 0,
         requireAdminReview: _requireAdminReview ? 1 : 0,
         autoFlagDisputeThreshold: int.tryParse(_autoFlagCtrl.text.trim()) ?? 0,
+        bandIsPerUnit: _bandIsPerUnit ? 1 : 0,
+        unitLabel: _unitLabelCtrl.text.trim().isEmpty
+            ? null
+            : _unitLabelCtrl.text.trim(),
+        warnVariancePercent: int.tryParse(_warnVarianceCtrl.text.trim()) ?? 25,
+        criticalVariancePercent:
+            int.tryParse(_criticalVarianceCtrl.text.trim()) ?? 60,
+        requireReasonOverCritical: _requireReasonOverCritical ? 1 : 0,
         serviceName: null,
         categoryId: null,
         categoryName: null,
@@ -191,7 +222,7 @@ class _PricingEditScreenState extends State<PricingEditScreen> {
       if (widget.profileId == null) {
         await _repo.createPricingProfile(profile);
       } else {
-        // ✅ FIX: repo expects Map<String, dynamic>
+        // Repo expects Map<String, dynamic>
         await _repo.updatePricingProfile(
           widget.profileId!,
           profile.toPayload(),
@@ -381,6 +412,31 @@ class _PricingEditScreenState extends State<PricingEditScreen> {
             ],
           ),
           const SizedBox(height: 18),
+          Text(
+            'Scale assumptions',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 10),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: _bandIsPerUnit,
+            title: const Text(
+              'Band is per unit (recommended for scalable jobs)',
+            ),
+            subtitle: const Text(
+              'If ON, band values represent a single unit, not the entire job.',
+            ),
+            onChanged: (v) => setState(() => _bandIsPerUnit = v),
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _unitLabelCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Unit label (optional) e.g. "1HP AC", "Socket point"',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 18),
           Text('Governance', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 10),
           SwitchListTile(
@@ -413,6 +469,44 @@ class _PricingEditScreenState extends State<PricingEditScreen> {
               labelText: 'Auto-flag dispute threshold (%)',
               border: OutlineInputBorder(),
             ),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            'Alert thresholds (guidance only)',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _warnVarianceCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Warn variance %',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextFormField(
+                  controller: _criticalVarianceCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Critical variance %',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: _requireReasonOverCritical,
+            title: const Text('Require reason when variance is critical'),
+            onChanged: (v) => setState(() => _requireReasonOverCritical = v),
           ),
           const SizedBox(height: 18),
           Text('Notes', style: Theme.of(context).textTheme.titleMedium),

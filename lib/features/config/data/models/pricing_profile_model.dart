@@ -15,6 +15,15 @@ class PricingProfile {
   final int requireAdminReview; // 0/1
   final int autoFlagDisputeThreshold;
 
+  // Bands can be per-job (default) or per-unit (scalable jobs). Stored as 0/1.
+  final int bandIsPerUnit;
+  final String? unitLabel;
+
+  // Alert thresholds (guidance only; should not block pricing).
+  final int warnVariancePercent;
+  final int criticalVariancePercent;
+  final int requireReasonOverCritical; // 0/1
+
   // Joined convenience
   final String? serviceName;
   final int? categoryId;
@@ -36,6 +45,11 @@ class PricingProfile {
     required this.maxOverridePercent,
     required this.requireAdminReview,
     required this.autoFlagDisputeThreshold,
+    required this.bandIsPerUnit,
+    required this.unitLabel,
+    required this.warnVariancePercent,
+    required this.criticalVariancePercent,
+    required this.requireReasonOverCritical,
     required this.serviceName,
     required this.categoryId,
     required this.categoryName,
@@ -70,6 +84,17 @@ class PricingProfile {
       maxOverridePercent: _asInt(m['max_override_percent']),
       requireAdminReview: _asInt(m['require_admin_review']),
       autoFlagDisputeThreshold: _asInt(m['auto_flag_dispute_threshold']),
+      bandIsPerUnit: _asInt(m['band_is_per_unit']),
+      unitLabel: m['unit_label']?.toString(),
+      warnVariancePercent: m['warn_variance_percent'] == null
+          ? 25
+          : _asInt(m['warn_variance_percent']),
+      criticalVariancePercent: m['critical_variance_percent'] == null
+          ? 60
+          : _asInt(m['critical_variance_percent']),
+      requireReasonOverCritical: m['require_reason_over_critical'] == null
+          ? 1
+          : _asInt(m['require_reason_over_critical']),
       serviceName: m['service_name']?.toString(),
       categoryId: m['category_id'] == null ? null : _asInt(m['category_id']),
       categoryName: m['category_name']?.toString(),
@@ -92,31 +117,11 @@ class PricingProfile {
       'max_override_percent': maxOverridePercent,
       'require_admin_review': requireAdminReview,
       'auto_flag_dispute_threshold': autoFlagDisputeThreshold,
+      'band_is_per_unit': bandIsPerUnit,
+      'unit_label': unitLabel,
+      'warn_variance_percent': warnVariancePercent,
+      'critical_variance_percent': criticalVariancePercent,
+      'require_reason_over_critical': requireReasonOverCritical,
     }..removeWhere((k, v) => v == null);
-  }
-
-  Map<String, dynamic> toCreatePayload() {
-    return {
-      'service_id': serviceId,
-      'pricing_basis': pricingBasis,
-      'inspection_fee': inspectionFee,
-      'minimum_job_fee': minimumJobFee,
-      'price_band_min': priceBandMin,
-      'price_band_max': priceBandMax,
-      'currency': currency,
-      'status': status,
-      'notes_for_client': notesForClient,
-      'notes_for_provider': notesForProvider,
-      'allow_band_override': allowBandOverride == 1 ? 1 : 0,
-      'max_override_percent': maxOverridePercent,
-      'require_admin_review': requireAdminReview == 1 ? 1 : 0,
-
-      'auto_flag_dispute_threshold': autoFlagDisputeThreshold,
-    }..removeWhere((k, v) => v == null);
-  }
-
-  Map<String, dynamic> toUpdatePayload() {
-    // same keys, but allow partial if you want
-    return toCreatePayload();
   }
 }

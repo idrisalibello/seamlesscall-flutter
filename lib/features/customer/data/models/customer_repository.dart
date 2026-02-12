@@ -1,7 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:seamlesscall/core/network/dio_client.dart';
-import 'package:seamlesscall/features/config/data/models/category_model.dart';
-import 'package:seamlesscall/features/config/data/models/service_model.dart';
+
+import 'category_model.dart';
+import 'service_model.dart';
 
 class CustomerRepository {
   final DioClient _dioClient = DioClient();
@@ -20,6 +21,8 @@ class CustomerRepository {
       throw Exception(
         'Failed to load categories: ${e.response?.data['messages'] ?? e.message}',
       );
+    } catch (e) {
+      throw Exception('An unexpected error occurred: $e');
     }
   }
 
@@ -39,6 +42,8 @@ class CustomerRepository {
       throw Exception(
         'Failed to load services: ${e.response?.data['messages'] ?? e.message}',
       );
+    } catch (e) {
+      throw Exception('An unexpected error occurred: $e');
     }
   }
 
