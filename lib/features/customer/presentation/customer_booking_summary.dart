@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+
 import '../../../common/widgets/main_layout.dart';
 import 'booking_models.dart';
 import 'customer_booking_timeline.dart';
@@ -31,12 +32,10 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen>
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
-    // Mock pricing - later replace with backend quote
-    final base = widget.draft.serviceName.toLowerCase().contains("clean")
-        ? 10000
-        : 7000;
-    final fee = widget.draft.type == BookingType.asap ? 1000 : 0;
-    final total = base + fee;
+    final d = widget.draft;
+
+    final address = d.address.isEmpty ? "Not provided yet" : d.address;
+    final note = d.note.isEmpty ? "None" : d.note;
 
     return MainLayout(
       child: Scaffold(
@@ -64,10 +63,10 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen>
                       child: _AnimatedIn(
                         delayMs: 40,
                         child: _TopBar(
-                          title: "Summary",
-                          subtitle: widget.draft.serviceName,
-                          onBack: () => Navigator.pop(context),
+                          title: "Booking summary",
+                          subtitle: d.serviceName,
                           stepText: "Step 2 of 2",
+                          onBack: () => Navigator.pop(context),
                         ),
                       ),
                     ),
@@ -77,38 +76,12 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen>
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                       child: _AnimatedIn(
-                        delayMs: 110,
-                        child: _SectionCard(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _RowKV(
-                                label: "Service",
-                                value: widget.draft.serviceName,
-                              ),
-                              const SizedBox(height: 10),
-                              _RowKV(
-                                label: "Type",
-                                value: widget.draft.typeLabel,
-                              ),
-                              const SizedBox(height: 10),
-                              _RowKV(
-                                label: "When",
-                                value: widget.draft.scheduleLabel,
-                              ),
-                              const SizedBox(height: 10),
-                              _RowKV(
-                                label: "Address",
-                                value: widget.draft.address.isEmpty
-                                    ? "Not set"
-                                    : widget.draft.address,
-                              ),
-                              if (widget.draft.note.isNotEmpty) ...[
-                                const SizedBox(height: 10),
-                                _RowKV(label: "Note", value: widget.draft.note),
-                              ],
-                            ],
-                          ),
+                        delayMs: 120,
+                        child: _HeroCard(
+                          title: "Review your request",
+                          subtitle:
+                              "Confirm the details below. You can refine them later via chat if needed.",
+                          icon: Icons.fact_check_rounded,
                         ),
                       ),
                     ),
@@ -118,42 +91,43 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen>
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                       child: _AnimatedIn(
-                        delayMs: 180,
+                        delayMs: 190,
                         child: _SectionCard(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "Cost estimate",
+                                "Request details",
                                 style: theme.textTheme.titleSmall?.copyWith(
                                   fontWeight: FontWeight.w900,
                                   color: cs.onSurface,
                                 ),
                               ),
-                              const SizedBox(height: 10),
-                              _PriceRow(label: "Service fee", amount: "₦$base"),
-                              const SizedBox(height: 8),
-                              _PriceRow(
-                                label: "Priority (ASAP)",
-                                amount: "₦$fee",
+                              const SizedBox(height: 12),
+                              _SummaryRow(
+                                icon: Icons.home_repair_service_rounded,
+                                label: "Service",
+                                value: d.serviceName,
                               ),
                               const SizedBox(height: 10),
-                              Divider(
-                                color: cs.outlineVariant.withOpacity(0.6),
+                              _SummaryRow(
+                                icon: Icons.timer_rounded,
+                                label: "When",
+                                value: d.type == BookingType.asap
+                                    ? "ASAP"
+                                    : d.scheduleLabel,
                               ),
                               const SizedBox(height: 10),
-                              _PriceRow(
-                                label: "Total",
-                                amount: "₦$total",
-                                strong: true,
+                              _SummaryRow(
+                                icon: Icons.location_on_rounded,
+                                label: "Address",
+                                value: address,
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                "Final price may change after technician diagnosis.",
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: cs.onSurface.withOpacity(0.62),
-                                ),
+                              const SizedBox(height: 10),
+                              _SummaryRow(
+                                icon: Icons.notes_rounded,
+                                label: "Notes",
+                                value: note,
                               ),
                             ],
                           ),
@@ -164,34 +138,34 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen>
 
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 110),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
                       child: _AnimatedIn(
-                        delayMs: 250,
+                        delayMs: 260,
                         child: _SectionCard(
-                          child: Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                height: 44,
-                                width: 44,
-                                decoration: BoxDecoration(
-                                  color: cs.primaryContainer.withOpacity(0.65),
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: Icon(
-                                  Icons.verified_user_rounded,
-                                  color: cs.primary,
+                              Text(
+                                "Next steps",
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                  color: cs.onSurface,
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  "You’ll be matched with a verified technician. You can chat and track progress once assigned.",
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: cs.onSurface.withOpacity(0.70),
-                                    height: 1.2,
-                                  ),
-                                ),
+                              const SizedBox(height: 12),
+                              _Bullet(
+                                text:
+                                    "You’ll pay the inspection/engagement fee to dispatch a technician.",
+                              ),
+                              const SizedBox(height: 10),
+                              _Bullet(
+                                text:
+                                    "After inspection, you receive a structured quote.",
+                              ),
+                              const SizedBox(height: 10),
+                              _Bullet(
+                                text:
+                                    "You approve and pay before execution starts.",
                               ),
                             ],
                           ),
@@ -210,17 +184,15 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen>
               child: SafeArea(
                 top: false,
                 child: _BottomBar(
-                  primaryText: "Confirm booking",
-                  secondaryText: "Edit",
-                  enabled: true,
+                  primaryText: "Confirm request",
+                  secondaryText: "Back",
                   onSecondary: () => Navigator.pop(context),
                   onPrimary: () {
-                    Navigator.push(
+                    // Phase 2: Still UI-only. Next screen shows the timeline state.
+                    Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => BookingTimelineScreen(
-                          serviceName: widget.draft.serviceName,
-                        ),
+                        builder: (_) => BookingTimelineScreen(draft: d),
                       ),
                     );
                   },
@@ -234,7 +206,7 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen>
   }
 }
 
-/* -------------- Small UI helpers (same style) -------------- */
+/* ---------------- UI components ---------------- */
 
 class _TopBar extends StatelessWidget {
   final String title;
@@ -314,54 +286,15 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-class _RowKV extends StatelessWidget {
-  final String label;
-  final String value;
-  const _RowKV({required this.label, required this.value});
+class _HeroCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 86,
-          child: Text(
-            "$label:",
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.w900,
-              color: cs.onSurface.withOpacity(0.65),
-            ),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            value,
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: cs.onSurface.withOpacity(0.82),
-              height: 1.2,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _PriceRow extends StatelessWidget {
-  final String label;
-  final String amount;
-  final bool strong;
-
-  const _PriceRow({
-    required this.label,
-    required this.amount,
-    this.strong = false,
+  const _HeroCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
   });
 
   @override
@@ -369,25 +302,57 @@ class _PriceRow extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontWeight: strong ? FontWeight.w900 : FontWeight.w700,
-              color: cs.onSurface.withOpacity(0.70),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cs.surface.withOpacity(0.92),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: cs.outlineVariant.withOpacity(0.6)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 18,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            height: 46,
+            width: 46,
+            decoration: BoxDecoration(
+              color: cs.primaryContainer.withOpacity(0.70),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(icon, color: cs.primary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    color: cs.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: cs.onSurface.withOpacity(0.68),
+                    height: 1.2,
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
-        Text(
-          amount,
-          style: theme.textTheme.bodySmall?.copyWith(
-            fontWeight: strong ? FontWeight.w900 : FontWeight.w800,
-            color: cs.onSurface,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -411,17 +376,93 @@ class _SectionCard extends StatelessWidget {
   }
 }
 
+class _SummaryRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _SummaryRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: cs.primary),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: cs.onSurface.withOpacity(0.65),
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                value,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  color: cs.onSurface,
+                  height: 1.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _Bullet extends StatelessWidget {
+  final String text;
+  const _Bullet({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.check_circle_rounded, size: 18, color: cs.primary),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: cs.onSurface.withOpacity(0.75),
+              height: 1.25,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _BottomBar extends StatelessWidget {
   final String primaryText;
   final String secondaryText;
-  final bool enabled;
   final VoidCallback onPrimary;
   final VoidCallback onSecondary;
 
   const _BottomBar({
     required this.primaryText,
     required this.secondaryText,
-    required this.enabled,
     required this.onPrimary,
     required this.onSecondary,
   });
@@ -461,23 +502,20 @@ class _BottomBar extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Opacity(
-              opacity: enabled ? 1 : 0.55,
-              child: _Pressable(
-                onTap: enabled ? onPrimary : () {},
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    color: cs.primary,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Center(
-                    child: Text(
-                      primaryText,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        color: cs.onPrimary,
-                      ),
+            child: _Pressable(
+              onTap: onPrimary,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: cs.primary,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Center(
+                  child: Text(
+                    primaryText,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: cs.onPrimary,
                     ),
                   ),
                 ),
@@ -489,6 +527,8 @@ class _BottomBar extends StatelessWidget {
     );
   }
 }
+
+/* ---------------- motion + bg ---------------- */
 
 class _AnimatedIn extends StatefulWidget {
   final Widget child;
@@ -505,6 +545,7 @@ class _AnimatedInState extends State<_AnimatedIn>
     vsync: this,
     duration: const Duration(milliseconds: 260),
   );
+
   late final Animation<double> _fade = CurvedAnimation(
     parent: _c,
     curve: Curves.easeOut,
@@ -530,10 +571,12 @@ class _AnimatedInState extends State<_AnimatedIn>
   }
 
   @override
-  Widget build(BuildContext context) => FadeTransition(
-    opacity: _fade,
-    child: SlideTransition(position: _slide, child: widget.child),
-  );
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _fade,
+      child: SlideTransition(position: _slide, child: widget.child),
+    );
+  }
 }
 
 class _Pressable extends StatefulWidget {
@@ -602,8 +645,9 @@ class _SoftBgPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _SoftBgPainter oldDelegate) =>
-      oldDelegate.t != t ||
-      oldDelegate.primary != primary ||
-      oldDelegate.surface != surface;
+  bool shouldRepaint(covariant _SoftBgPainter oldDelegate) {
+    return oldDelegate.t != t ||
+        oldDelegate.primary != primary ||
+        oldDelegate.surface != surface;
+  }
 }

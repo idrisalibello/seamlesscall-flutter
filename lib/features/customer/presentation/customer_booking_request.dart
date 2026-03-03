@@ -1,11 +1,11 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+
 import '../../../common/widgets/main_layout.dart';
 import 'booking_models.dart';
 import 'customer_booking_summary.dart';
 
 class BookingRequestScreen extends StatefulWidget {
-  /// Optional so existing calls still compile.
   final String? serviceName;
 
   const BookingRequestScreen({super.key, this.serviceName});
@@ -51,8 +51,8 @@ class _BookingRequestScreenState extends State<BookingRequestScreen>
     );
 
     final canProceed =
-        draft.type == BookingType.asap ||
-        (draft.type == BookingType.scheduled && draft.scheduledAt != null);
+        _type == BookingType.asap ||
+        (_type == BookingType.scheduled && _scheduledAt != null);
 
     return MainLayout(
       child: Scaffold(
@@ -88,7 +88,6 @@ class _BookingRequestScreenState extends State<BookingRequestScreen>
                       ),
                     ),
                   ),
-
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -104,7 +103,6 @@ class _BookingRequestScreenState extends State<BookingRequestScreen>
                     ),
                   ),
 
-                  // Booking type chips
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -129,9 +127,9 @@ class _BookingRequestScreenState extends State<BookingRequestScreen>
                             const SizedBox(width: 12),
                             Expanded(
                               child: _BouncyTap(
-                                onTap: () => setState(
-                                  () => _type = BookingType.scheduled,
-                                ),
+                                onTap: () => setState(() {
+                                  _type = BookingType.scheduled;
+                                }),
                                 child: _ChoiceTile(
                                   title: "Schedule",
                                   subtitle: "Pick date & time",
@@ -146,7 +144,6 @@ class _BookingRequestScreenState extends State<BookingRequestScreen>
                     ),
                   ),
 
-                  // Date/time picker (only when scheduled)
                   if (_type == BookingType.scheduled)
                     SliverToBoxAdapter(
                       child: Padding(
@@ -209,7 +206,6 @@ class _BookingRequestScreenState extends State<BookingRequestScreen>
                       ),
                     ),
 
-                  // Address
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -269,7 +265,6 @@ class _BookingRequestScreenState extends State<BookingRequestScreen>
                     ),
                   ),
 
-                  // Notes
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 110),
@@ -321,7 +316,6 @@ class _BookingRequestScreenState extends State<BookingRequestScreen>
               ),
             ),
 
-            // Sticky bottom CTA
             Positioned(
               left: 0,
               right: 0,

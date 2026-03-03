@@ -13,10 +13,20 @@ class Service {
     this.status,
   });
 
+  static int _toInt(dynamic v) {
+    if (v == null) return 0;
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    if (v is String) return int.tryParse(v.trim()) ?? 0;
+    return 0;
+  }
+
   factory Service.fromMap(Map<String, dynamic> map) {
+    final rawCategoryId = map['category_id'] ?? map['categoryId'];
+
     return Service(
-      id: (map['id'] as num).toInt(),
-      categoryId: (map['category_id'] as num).toInt(),
+      id: _toInt(map['id']),
+      categoryId: _toInt(rawCategoryId),
       name: (map['name'] ?? '').toString(),
       description: map['description']?.toString(),
       status: map['status']?.toString(),

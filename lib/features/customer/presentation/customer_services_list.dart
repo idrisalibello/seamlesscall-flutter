@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+
+import '../data/models/customer_repository.dart';
 import 'customer_service_details.dart';
 
 class ServicesListScreen extends StatefulWidget {
@@ -11,57 +13,104 @@ class ServicesListScreen extends StatefulWidget {
 
 class _ServicesListScreenState extends State<ServicesListScreen>
     with SingleTickerProviderStateMixin {
+  final CustomerRepository _repo = CustomerRepository();
+
   String _query = '';
   int _selectedCategory = 0;
+
+  bool _loading = true;
+  String? _error;
 
   late final AnimationController _bg = AnimationController(
     vsync: this,
     duration: const Duration(seconds: 6),
   )..repeat(reverse: true);
 
-  final _categories = const [
-    'All',
-    'Home',
-    'Repairs',
-    'Cleaning',
-    'Electrical',
-    'Plumbing',
-  ];
+  List<String> _categories = const ['All'];
+  final Map<int, String> _categoryNameById = <int, String>{};
 
-  // Replace with your real backend list later.
-  final List<_ServiceItem> _services = const [
-    _ServiceItem(
-      title: 'AC Repair',
-      subtitle: 'Diagnosis • Gas refill • Maintenance',
-      category: 'Repairs',
-      imageAsset:
-          'assets/images/customer/premium_photo-1682126009570-3fe2399162f7.png',
-      badge: 'Top-rated',
-    ),
-    _ServiceItem(
-      title: 'Plumbing',
-      subtitle: 'Leaks • fittings • installations',
-      category: 'Plumbing',
-      imageAsset:
-          'assets/images/customer/handyman-repairing-sink-pipe-young-african-worktool-56844343.png',
-      badge: 'Fast response',
-    ),
-    _ServiceItem(
-      title: 'House Cleaning',
-      subtitle: 'Home • office • deep cleaning',
-      category: 'Cleaning',
-      imageAsset: 'assets/images/customer/im3rd-media-FJZtZldA-uE-unsplash.png',
-      badge: 'Trusted',
-    ),
-    _ServiceItem(
-      title: 'Electrical',
-      subtitle: 'Wiring • sockets • appliances',
-      category: 'Electrical',
-      imageAsset:
-          'assets/images/customer/emmanuel-ikwuegbu--0-kl1BjvFc-unsplash.png',
-      badge: 'Verified',
-    ),
-  ];
+  List<_ServiceItem> _services = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+      _selectedCategory = 0;
+      _query = '';
+    });
+
+    try {
+      final cats = await _repo.getCategories();
+      _categoryNameById
+        ..clear()
+        ..addEntries(cats.map((c) => MapEntry(c.id, c.name)));
+
+      final categories = <String>['All', ...cats.map((c) => c.name)];
+
+      final services = await _repo.getAllServices();
+      final items = services.map((s) {
+        final categoryName = _categoryNameById[s.categoryId] ?? 'Other';
+        final title = s.name;
+        final subtitle =
+            (s.description == null || s.description!.trim().isEmpty)
+            ? 'Professional service'
+            : s.description!.trim();
+
+        return _ServiceItem(
+          title: title,
+          subtitle: subtitle,
+          category: categoryName,
+          imageAsset: _pickImageAsset(title),
+          badge: _pickBadge(title),
+        );
+      }).toList();
+
+      setState(() {
+        _categories = categories;
+        _services = items;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _loading = false;
+        _error = e.toString();
+      });
+    }
+  }
+
+  String _pickImageAsset(String title) {
+    final t = title.toLowerCase();
+    if (t.contains('ac')) {
+      return 'assets/images/customer/premium_photo-1682126009570-3fe2399162f7.png';
+    }
+    if (t.contains('plumb') || t.contains('pipe') || t.contains('sink')) {
+      return 'assets/images/customer/handyman-repairing-sink-pipe-young-african-worktool-56844343.png';
+    }
+    if (t.contains('clean')) {
+      return 'assets/images/customer/im3rd-media-FJZtZldA-uE-unsplash.png';
+    }
+    if (t.contains('electric') ||
+        t.contains('wiring') ||
+        t.contains('socket')) {
+      return 'assets/images/customer/emmanuel-ikwuegbu--0-kl1BjvFc-unsplash.png';
+    }
+    return 'assets/images/customer/premium_photo-1682126009570-3fe2399162f7.png';
+  }
+
+  String _pickBadge(String title) {
+    final t = title.toLowerCase();
+    if (t.contains('ac')) return 'Top-rated';
+    if (t.contains('clean')) return 'Trusted';
+    if (t.contains('electric')) return 'Verified';
+    if (t.contains('plumb')) return 'Fast response';
+    return 'Available';
+  }
 
   @override
   void dispose() {
@@ -74,17 +123,25 @@ class _ServicesListScreenState extends State<ServicesListScreen>
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
-    final selected = _categories[_selectedCategory];
+    final selected =
+        (_selectedCategory >= 0 && _selectedCategory < _categories.length)
+        ? _categories[_selectedCategory]
+        : 'All';
 
-    final filtered = _services.where((s) {
-      final q = _query.trim().toLowerCase();
-      final matchesQuery =
-          q.isEmpty ||
-          s.title.toLowerCase().contains(q) ||
-          s.subtitle.toLowerCase().contains(q);
-      final matchesCategory = selected == 'All' || s.category == selected;
-      return matchesQuery && matchesCategory;
-    }).toList();
+    final List<_ServiceItem> filtered;
+    if (_loading || _error != null) {
+      filtered = const [];
+    } else {
+      filtered = _services.where((s) {
+        final q = _query.trim().toLowerCase();
+        final matchesQuery =
+            q.isEmpty ||
+            s.title.toLowerCase().contains(q) ||
+            s.subtitle.toLowerCase().contains(q);
+        final matchesCategory = selected == 'All' || s.category == selected;
+        return matchesQuery && matchesCategory;
+      }).toList();
+    }
 
     return Scaffold(
       body: Stack(
@@ -161,28 +218,98 @@ class _ServicesListScreenState extends State<ServicesListScreen>
 
                 const SliverToBoxAdapter(child: SizedBox(height: 12)),
 
-                // ✅ Animated empty / list swap
-                SliverToBoxAdapter(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 220),
-                    switchInCurve: Curves.easeOut,
-                    switchOutCurve: Curves.easeIn,
-                    child: filtered.isEmpty
-                        ? Padding(
-                            key: const ValueKey("empty"),
-                            padding: const EdgeInsets.fromLTRB(16, 30, 16, 0),
-                            child: _AnimatedIn(
-                              delayMs: 0,
-                              child: const _EmptyState(
-                                title: 'No services found',
-                                subtitle:
-                                    'Try a different keyword or category.',
+                // ✅ Loading / error / empty / list
+                if (_loading)
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(16, 32, 16, 0),
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(height: 8),
+                            CircularProgressIndicator(),
+                            SizedBox(height: 12),
+                            Text('Loading services...'),
+                          ],
+                        ),
+                      ),
+                    ),
+                  )
+                else if (_error != null)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 30, 16, 0),
+                      child: _AnimatedIn(
+                        delayMs: 0,
+                        child: Column(
+                          children: [
+                            _EmptyState(
+                              title: 'Failed to load services',
+                              subtitle: _error!,
+                            ),
+                            const SizedBox(height: 12),
+                            _BouncyTap(
+                              onTap: _load,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: cs.surface.withOpacity(0.92),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: cs.outlineVariant.withOpacity(0.6),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.refresh_rounded,
+                                      color: cs.primary,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Retry',
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w900,
+                                            color: cs.onSurface,
+                                          ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                          )
-                        : const SizedBox.shrink(key: ValueKey("list")),
+                          ],
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  SliverToBoxAdapter(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 220),
+                      switchInCurve: Curves.easeOut,
+                      switchOutCurve: Curves.easeIn,
+                      child: filtered.isEmpty
+                          ? Padding(
+                              key: const ValueKey("empty"),
+                              padding: const EdgeInsets.fromLTRB(16, 30, 16, 0),
+                              child: _AnimatedIn(
+                                delayMs: 0,
+                                child: const _EmptyState(
+                                  title: 'No services found',
+                                  subtitle:
+                                      'Try a different keyword or category.',
+                                ),
+                              ),
+                            )
+                          : const SizedBox.shrink(key: ValueKey("list")),
+                    ),
                   ),
-                ),
 
                 if (filtered.isNotEmpty)
                   SliverPadding(
@@ -521,11 +648,16 @@ class _ServiceCardState extends State<_ServiceCard> {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            'Verified providers available',
+                            "Verified technicians",
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: cs.onSurface.withOpacity(0.70),
                               fontWeight: FontWeight.w700,
+                              color: cs.onSurface.withOpacity(0.70),
                             ),
+                          ),
+                          const Spacer(),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            color: cs.onSurface.withOpacity(0.45),
                           ),
                         ],
                       ),
@@ -551,9 +683,9 @@ class _Badge extends StatelessWidget {
     final cs = theme.colorScheme;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
-        color: cs.primaryContainer.withOpacity(0.70),
+        color: cs.primaryContainer.withOpacity(0.75),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
@@ -561,6 +693,7 @@ class _Badge extends StatelessWidget {
         style: theme.textTheme.bodySmall?.copyWith(
           fontWeight: FontWeight.w900,
           color: cs.primary,
+          height: 1,
         ),
       ),
     );
@@ -579,7 +712,7 @@ class _EmptyState extends StatelessWidget {
     final cs = theme.colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: cs.surface.withOpacity(0.92),
         borderRadius: BorderRadius.circular(18),
@@ -588,11 +721,11 @@ class _EmptyState extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            height: 44,
-            width: 44,
+            height: 46,
+            width: 46,
             decoration: BoxDecoration(
               color: cs.primaryContainer.withOpacity(0.65),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(Icons.search_off_rounded, color: cs.primary),
           ),
@@ -612,8 +745,9 @@ class _EmptyState extends StatelessWidget {
                 Text(
                   subtitle,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: cs.onSurface.withOpacity(0.65),
                     fontWeight: FontWeight.w600,
+                    color: cs.onSurface.withOpacity(0.68),
+                    height: 1.2,
                   ),
                 ),
               ],
@@ -625,12 +759,11 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-/* ---------------- Motion helpers ---------------- */
+/* ---------------- Motion + bg ---------------- */
 
 class _AnimatedIn extends StatefulWidget {
   final Widget child;
   final int delayMs;
-
   const _AnimatedIn({required this.child, this.delayMs = 0});
 
   @override
@@ -680,7 +813,6 @@ class _AnimatedInState extends State<_AnimatedIn>
 class _BouncyTap extends StatefulWidget {
   final Widget child;
   final VoidCallback onTap;
-
   const _BouncyTap({required this.child, required this.onTap});
 
   @override
@@ -709,13 +841,10 @@ class _BouncyTapState extends State<_BouncyTap> {
   }
 }
 
-/* ---------------- Background painter ---------------- */
-
 class _SoftBgPainter extends CustomPainter {
   final Color primary;
   final Color surface;
   final double t;
-
   _SoftBgPainter({
     required this.primary,
     required this.surface,

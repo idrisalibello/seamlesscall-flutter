@@ -1,11 +1,27 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+
 import '../../../common/widgets/main_layout.dart';
 import 'customer_booking_request.dart';
 
 class ServiceDetailsScreen extends StatefulWidget {
+  /// Backward-compatible: existing calls pass only serviceName.
   final String serviceName;
-  const ServiceDetailsScreen({super.key, required this.serviceName});
+
+  /// Optional enhancements (if caller provides later).
+  final String? serviceDescription;
+  final String? categoryName;
+  final String? imageAsset;
+  final String? badge;
+
+  const ServiceDetailsScreen({
+    super.key,
+    required this.serviceName,
+    this.serviceDescription,
+    this.categoryName,
+    this.imageAsset,
+    this.badge,
+  });
 
   @override
   State<ServiceDetailsScreen> createState() => _ServiceDetailsScreenState();
@@ -29,18 +45,26 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen>
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
-    final meta = _ServiceMeta.fromName(widget.serviceName);
+    final title = widget.serviceName;
+    final subtitle =
+        (widget.serviceDescription == null ||
+            widget.serviceDescription!.trim().isEmpty)
+        ? _fallbackSubtitle(title)
+        : widget.serviceDescription!.trim();
+
+    final imageAsset = widget.imageAsset ?? _pickImageAsset(title);
+    final badge = widget.badge ?? _pickBadge(title);
+    final category = widget.categoryName;
 
     return MainLayout(
       child: Scaffold(
         backgroundColor: cs.background,
         body: Stack(
           children: [
-            // ✅ Animated background
             Positioned.fill(
               child: AnimatedBuilder(
                 animation: _bg,
-                builder: (context, _) => CustomPaint(
+                builder: (_, __) => CustomPaint(
                   painter: _SoftBgPainter(
                     primary: cs.primary,
                     surface: cs.surface,
@@ -49,7 +73,6 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen>
                 ),
               ),
             ),
-
             SafeArea(
               child: CustomScrollView(
                 slivers: [
@@ -59,78 +82,39 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen>
                       child: _AnimatedIn(
                         delayMs: 40,
                         child: _TopBar(
-                          title: widget.serviceName,
-                          subtitle: meta.subtitle,
+                          title: "Service details",
+                          subtitle: category == null || category.trim().isEmpty
+                              ? "Choose and book confidently"
+                              : category,
                           onBack: () => Navigator.pop(context),
+                          trailing: _BadgePill(text: badge),
                         ),
                       ),
                     ),
                   ),
 
-                  // Hero image card
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                       child: _AnimatedIn(
                         delayMs: 120,
-                        child: _HeroCard(
-                          title: meta.heroTitle,
-                          badge: meta.badge,
-                          imageAsset: meta.imageAsset,
+                        child: _HeroImageCard(
+                          imageAsset: imageAsset,
+                          title: title,
+                          subtitle: subtitle,
                         ),
                       ),
                     ),
                   ),
 
-                  // Stats row
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                       child: _AnimatedIn(
-                        delayMs: 180,
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: _StatTile(
-                                icon: Icons.schedule_rounded,
-                                label: "ETA",
-                                value: meta.etaText,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _StatTile(
-                                icon: Icons.payments_rounded,
-                                label: "From",
-                                value: meta.fromPriceText,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _StatTile(
-                                icon: Icons.star_rounded,
-                                label: "Rating",
-                                value: meta.ratingText,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // About
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
-                      child: _AnimatedIn(
-                        delayMs: 240,
-                        child: Text(
-                          "About this service",
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w900,
-                            color: cs.onBackground,
-                          ),
+                        delayMs: 200,
+                        child: _InfoCard(
+                          title: "What you get",
+                          items: _benefitsFor(title),
                         ),
                       ),
                     ),
@@ -138,104 +122,16 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen>
 
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
                       child: _AnimatedIn(
                         delayMs: 280,
-                        child: _SectionCard(
-                          child: Text(
-                            meta.description,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              height: 1.35,
-                              fontWeight: FontWeight.w600,
-                              color: cs.onSurface.withOpacity(0.78),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // What you get
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
-                      child: _AnimatedIn(
-                        delayMs: 320,
-                        child: Text(
-                          "What you get",
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w900,
-                            color: cs.onBackground,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 6, 16, 18),
-                    sliver: SliverList.separated(
-                      itemCount: meta.includes.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
-                      itemBuilder: (context, i) => _AnimatedIn(
-                        delayMs: 360 + (i * 70),
-                        child: _IncludeTile(text: meta.includes[i]),
-                      ),
-                    ),
-                  ),
-
-                  // Safety & verification
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 110),
-                      child: _AnimatedIn(
-                        delayMs: 520,
-                        child: _SectionCard(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                height: 44,
-                                width: 44,
-                                decoration: BoxDecoration(
-                                  color: cs.primaryContainer.withOpacity(0.65),
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: Icon(
-                                  Icons.verified_user_rounded,
-                                  color: cs.primary,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      "Verified technicians",
-                                      style: theme.textTheme.titleSmall
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w900,
-                                            color: cs.onSurface,
-                                          ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      "Providers are screened and rated. You can chat and track progress before arrival.",
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                            color: cs.onSurface.withOpacity(
-                                              0.68,
-                                            ),
-                                            height: 1.2,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
+                        child: _InfoCard(
+                          title: "How it works",
+                          items: const [
+                            "Pay inspection/engagement fee to dispatch a technician",
+                            "Technician inspects and generates a structured quote",
+                            "You approve and pay before work proceeds",
+                          ],
                         ),
                       ),
                     ),
@@ -244,7 +140,7 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen>
               ),
             ),
 
-            // ✅ Sticky bottom booking bar
+            // Sticky bottom CTA
             Positioned(
               left: 0,
               right: 0,
@@ -252,14 +148,19 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen>
               child: SafeArea(
                 top: false,
                 child: _BottomBar(
-                  serviceName: widget.serviceName,
-                  fromPriceText: meta.fromPriceText,
-                  onBook: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const BookingRequestScreen(),
-                    ),
-                  ),
+                  primaryText: "Book now",
+                  secondaryText: "Back",
+                  onSecondary: () => Navigator.pop(context),
+                  onPrimary: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => BookingRequestScreen(
+                          serviceName: widget.serviceName,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
@@ -268,19 +169,105 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen>
       ),
     );
   }
+
+  String _fallbackSubtitle(String title) {
+    final t = title.toLowerCase();
+    if (t.contains('ac'))
+      return "Reliable diagnosis and repairs by vetted techs.";
+    if (t.contains('plumb') || t.contains('pipe') || t.contains('sink')) {
+      return "Fast plumbing fixes with clear, structured pricing.";
+    }
+    if (t.contains('clean'))
+      return "Premium cleaning with consistent quality checks.";
+    if (t.contains('electric') ||
+        t.contains('wiring') ||
+        t.contains('socket')) {
+      return "Safe electrical work handled by verified professionals.";
+    }
+    return "Professional service delivered with transparent pricing.";
+  }
+
+  String _pickImageAsset(String title) {
+    final t = title.toLowerCase();
+    if (t.contains('ac')) {
+      return 'images/customer/premium_photo-1682126009570-3fe2399162f7.png';
+    }
+    if (t.contains('plumb') || t.contains('pipe') || t.contains('sink')) {
+      return 'images/customer/handyman-repairing-sink-pipe-young-african-worktool-56844343.png';
+    }
+    if (t.contains('clean')) {
+      return 'images/customer/im3rd-media-FJZtZldA-uE-unsplash.png';
+    }
+    if (t.contains('electric') ||
+        t.contains('wiring') ||
+        t.contains('socket')) {
+      return 'images/customer/emmanuel-ikwuegbu--0-kl1BjvFc-unsplash.png';
+    }
+    return 'images/customer/premium_photo-1682126009570-3fe2399162f7.png';
+  }
+
+  String _pickBadge(String title) {
+    final t = title.toLowerCase();
+    if (t.contains('ac')) return 'Top-rated';
+    if (t.contains('clean')) return 'Trusted';
+    if (t.contains('electric')) return 'Verified';
+    if (t.contains('plumb')) return 'Fast response';
+    return 'Available';
+  }
+
+  List<String> _benefitsFor(String title) {
+    final t = title.toLowerCase();
+    if (t.contains('ac')) {
+      return const [
+        "Diagnosis + clear quote before work starts",
+        "Verified technicians with service history",
+        "Structured pricing with visible adjustments",
+      ];
+    }
+    if (t.contains('plumb') || t.contains('pipe') || t.contains('sink')) {
+      return const [
+        "Quick troubleshooting and fix plan",
+        "Transparent quote and itemized adjustments",
+        "Work proceeds only after approval",
+      ];
+    }
+    if (t.contains('clean')) {
+      return const [
+        "Consistent premium cleaning checklist",
+        "Clear scope and price confirmation",
+        "Option to request changes before approval",
+      ];
+    }
+    if (t.contains('electric') ||
+        t.contains('wiring') ||
+        t.contains('socket')) {
+      return const [
+        "Safety-first assessment",
+        "Clear quote and approval before execution",
+        "Verified professionals, documented service",
+      ];
+    }
+    return const [
+      "Clear quote after inspection",
+      "Approval required before work begins",
+      "Payments tracked with receipts",
+    ];
+  }
 }
 
-/* ---------------- UI blocks ---------------- */
+/* ---------------- UI components ---------------- */
 
 class _TopBar extends StatelessWidget {
   final String title;
   final String subtitle;
   final VoidCallback onBack;
+  final Widget trailing;
 
   const _TopBar({
     required this.title,
     required this.subtitle,
     required this.onBack,
+    required this.trailing,
   });
 
   @override
@@ -311,8 +298,6 @@ class _TopBar extends StatelessWidget {
             children: [
               Text(
                 title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w900,
                   color: cs.onBackground,
@@ -331,149 +316,131 @@ class _TopBar extends StatelessWidget {
             ],
           ),
         ),
+        trailing,
       ],
     );
   }
 }
 
-class _HeroCard extends StatelessWidget {
-  final String title;
-  final String badge;
-  final String imageAsset;
-
-  const _HeroCard({
-    required this.title,
-    required this.badge,
-    required this.imageAsset,
-  });
+class _BadgePill extends StatelessWidget {
+  final String text;
+  const _BadgePill({required this.text});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final cs = theme.colorScheme;
+    final cs = Theme.of(context).colorScheme;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(22),
-      child: Container(
-        height: 200,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              cs.surface.withOpacity(0.96),
-              cs.primaryContainer.withOpacity(0.42),
-            ],
-          ),
-          border: Border.all(color: cs.outlineVariant.withOpacity(0.6)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 22,
-              offset: const Offset(0, 14),
-            ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: Opacity(
-                opacity: 0.30,
-                child: Image.asset(
-                  imageAsset,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                ),
-              ),
-            ),
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [cs.surface.withOpacity(0.84), Colors.transparent],
-                  ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  _Badge(text: badge),
-                  const SizedBox(height: 10),
-                  Text(
-                    title,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      color: cs.onSurface,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: cs.primaryContainer.withOpacity(0.70),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        text,
+        style: theme.textTheme.bodySmall?.copyWith(
+          fontWeight: FontWeight.w900,
+          color: cs.primary,
         ),
       ),
     );
   }
 }
 
-class _StatTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
+class _HeroImageCard extends StatelessWidget {
+  final String imageAsset;
+  final String title;
+  final String subtitle;
 
-  const _StatTile({
-    required this.icon,
-    required this.label,
-    required this.value,
+  const _HeroImageCard({
+    required this.imageAsset,
+    required this.title,
+    required this.subtitle,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final cs = theme.colorScheme;
+    final cs = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: cs.surface.withOpacity(0.92),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(color: cs.outlineVariant.withOpacity(0.6)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            height: 34,
-            width: 34,
-            decoration: BoxDecoration(
-              color: cs.primaryContainer.withOpacity(0.70),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, size: 18, color: cs.primary),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 18,
+            offset: const Offset(0, 12),
           ),
-          const SizedBox(width: 10),
-          Expanded(
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(22),
+              topRight: Radius.circular(22),
+            ),
+            child: SizedBox(
+              height: 170,
+              width: double.infinity,
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: Image.asset(
+                      imageAsset,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        color: cs.primaryContainer.withOpacity(0.25),
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.image_not_supported,
+                          color: cs.onSurface.withOpacity(0.45),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withOpacity(0.05),
+                            Colors.black.withOpacity(0.25),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  label,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: cs.onSurface.withOpacity(0.65),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: theme.textTheme.bodySmall?.copyWith(
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w900,
                     color: cs.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  subtitle,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: cs.onSurface.withOpacity(0.70),
+                    fontWeight: FontWeight.w600,
+                    height: 1.2,
                   ),
                 ),
               ],
@@ -485,29 +452,11 @@ class _StatTile extends StatelessWidget {
   }
 }
 
-class _SectionCard extends StatelessWidget {
-  final Widget child;
-  const _SectionCard({required this.child});
+class _InfoCard extends StatelessWidget {
+  final String title;
+  final List<String> items;
 
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: cs.surface.withOpacity(0.92),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: cs.outlineVariant.withOpacity(0.6)),
-      ),
-      child: child,
-    );
-  }
-}
-
-class _IncludeTile extends StatelessWidget {
-  final String text;
-  const _IncludeTile({required this.text});
+  const _InfoCard({required this.title, required this.items});
 
   @override
   Widget build(BuildContext context) {
@@ -515,31 +464,42 @@ class _IncludeTile extends StatelessWidget {
     final cs = theme.colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: cs.surface.withOpacity(0.92),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: cs.outlineVariant.withOpacity(0.6)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            height: 30,
-            width: 30,
-            decoration: BoxDecoration(
-              color: cs.primaryContainer.withOpacity(0.70),
-              borderRadius: BorderRadius.circular(10),
+          Text(
+            title,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w900,
+              color: cs.onSurface,
             ),
-            child: Icon(Icons.check_rounded, size: 18, color: cs.primary),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: cs.onSurface.withOpacity(0.78),
-                height: 1.2,
+          const SizedBox(height: 12),
+          ...items.map(
+            (t) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.check_circle_rounded, size: 18, color: cs.primary),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      t,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: cs.onSurface.withOpacity(0.75),
+                        height: 1.25,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -550,14 +510,16 @@ class _IncludeTile extends StatelessWidget {
 }
 
 class _BottomBar extends StatelessWidget {
-  final String serviceName;
-  final String fromPriceText;
-  final VoidCallback onBook;
+  final String primaryText;
+  final String secondaryText;
+  final VoidCallback onPrimary;
+  final VoidCallback onSecondary;
 
   const _BottomBar({
-    required this.serviceName,
-    required this.fromPriceText,
-    required this.onBook,
+    required this.primaryText,
+    required this.secondaryText,
+    required this.onPrimary,
+    required this.onSecondary,
   });
 
   @override
@@ -575,45 +537,42 @@ class _BottomBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  serviceName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    color: cs.onSurface,
-                  ),
+          _Pressable(
+            onTap: onSecondary,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: cs.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: cs.outlineVariant.withOpacity(0.8)),
+              ),
+              child: Text(
+                secondaryText,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  color: cs.onSurface.withOpacity(0.80),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  fromPriceText,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: cs.onSurface.withOpacity(0.65),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
           const SizedBox(width: 12),
-          _Pressable(
-            onTap: onBook,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-              decoration: BoxDecoration(
-                color: cs.primary,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(
-                "Book now",
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  color: cs.onPrimary,
+          Expanded(
+            child: _Pressable(
+              onTap: onPrimary,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: cs.primary,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Center(
+                  child: Text(
+                    primaryText,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: cs.onPrimary,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -624,38 +583,11 @@ class _BottomBar extends StatelessWidget {
   }
 }
 
-class _Badge extends StatelessWidget {
-  final String text;
-  const _Badge({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: cs.primaryContainer.withOpacity(0.70),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        text,
-        style: theme.textTheme.bodySmall?.copyWith(
-          fontWeight: FontWeight.w900,
-          color: cs.primary,
-        ),
-      ),
-    );
-  }
-}
-
-/* ---------------- Motion + background ---------------- */
+/* ---------------- Motion + bg ---------------- */
 
 class _AnimatedIn extends StatefulWidget {
   final Widget child;
   final int delayMs;
-
   const _AnimatedIn({required this.child, this.delayMs = 0});
 
   @override
@@ -705,7 +637,6 @@ class _AnimatedInState extends State<_AnimatedIn>
 class _Pressable extends StatefulWidget {
   final Widget child;
   final VoidCallback onTap;
-
   const _Pressable({required this.child, required this.onTap});
 
   @override
@@ -738,7 +669,6 @@ class _SoftBgPainter extends CustomPainter {
   final Color primary;
   final Color surface;
   final double t;
-
   _SoftBgPainter({
     required this.primary,
     required this.surface,
@@ -774,118 +704,5 @@ class _SoftBgPainter extends CustomPainter {
     return oldDelegate.t != t ||
         oldDelegate.primary != primary ||
         oldDelegate.surface != surface;
-  }
-}
-
-/* ---------------- Data (mock) ---------------- */
-
-class _ServiceMeta {
-  final String subtitle;
-  final String heroTitle;
-  final String badge;
-  final String imageAsset;
-  final String etaText;
-  final String fromPriceText;
-  final String ratingText;
-  final String description;
-  final List<String> includes;
-
-  const _ServiceMeta({
-    required this.subtitle,
-    required this.heroTitle,
-    required this.badge,
-    required this.imageAsset,
-    required this.etaText,
-    required this.fromPriceText,
-    required this.ratingText,
-    required this.description,
-    required this.includes,
-  });
-
-  static _ServiceMeta fromName(String name) {
-    final n = name.toLowerCase().trim();
-
-    if (n.contains('ac')) {
-      return const _ServiceMeta(
-        subtitle: "Cooling issues • Maintenance • Gas refill",
-        heroTitle: "Restore cooling fast, without stress.",
-        badge: "Top-rated",
-        imageAsset:
-            "assets/images/customer/premium_photo-1682126009570-3fe2399162f7.png",
-        etaText: "30–60 min",
-        fromPriceText: "From ₦8,000",
-        ratingText: "4.8",
-        description:
-            "Our technicians diagnose cooling faults, perform maintenance, and replace faulty parts. You’ll see updates and can chat before arrival.",
-        includes: [
-          "Technician diagnosis & inspection",
-          "Minor fixes (tightening, cleaning, calibration)",
-          "Clear quotation before major repairs",
-          "Post-service tips for better efficiency",
-        ],
-      );
-    }
-
-    if (n.contains('plumb')) {
-      return const _ServiceMeta(
-        subtitle: "Leaks • fittings • installations",
-        heroTitle: "Fix leaks quickly and protect your home.",
-        badge: "Fast response",
-        imageAsset:
-            "assets/images/customer/handyman-repairing-sink-pipe-young-african-worktool-56844343.png",
-        etaText: "20–50 min",
-        fromPriceText: "From ₦6,000",
-        ratingText: "4.7",
-        description:
-            "From leaking pipes to replacements and installations. Get verified plumbers with transparent pricing and real-time tracking.",
-        includes: [
-          "Leak detection & repair",
-          "Pipe/fitting replacement (basic)",
-          "Installation assistance & testing",
-          "Clean-up after work",
-        ],
-      );
-    }
-
-    if (n.contains('clean')) {
-      return const _ServiceMeta(
-        subtitle: "Home • office • deep cleaning",
-        heroTitle: "Make your space feel new again.",
-        badge: "Trusted",
-        imageAsset:
-            "assets/images/customer/im3rd-media-FJZtZldA-uE-unsplash.png",
-        etaText: "Same day",
-        fromPriceText: "From ₦10,000",
-        ratingText: "4.9",
-        description:
-            "Book trusted cleaners for routine or deep cleaning. Set scope, add notes, and track arrival. Perfect for home and office.",
-        includes: [
-          "Standard cleaning checklist",
-          "Optional deep-clean add-ons",
-          "Bring/confirm supplies",
-          "Respectful, vetted cleaners",
-        ],
-      );
-    }
-
-    // default
-    return const _ServiceMeta(
-      subtitle: "Wiring • sockets • appliances",
-      heroTitle: "Safe electrical fixes by verified pros.",
-      badge: "Verified",
-      imageAsset:
-          "assets/images/customer/emmanuel-ikwuegbu--0-kl1BjvFc-unsplash.png",
-      etaText: "30–70 min",
-      fromPriceText: "From ₦7,000",
-      ratingText: "4.6",
-      description:
-          "Electrical work should be safe and professional. Get verified technicians with clear pricing and status updates.",
-      includes: [
-        "Troubleshooting & inspection",
-        "Sockets/switches replacement (basic)",
-        "Appliance checks (basic)",
-        "Safety advice after service",
-      ],
-    );
   }
 }

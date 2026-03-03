@@ -13,15 +13,23 @@ class Category {
     this.serviceCount,
   });
 
+  static int _toInt(dynamic v) {
+    if (v == null) return 0;
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    if (v is String) return int.tryParse(v.trim()) ?? 0;
+    return 0;
+  }
+
   factory Category.fromMap(Map<String, dynamic> map) {
     return Category(
-      id: (map['id'] as num).toInt(),
+      id: _toInt(map['id']),
       name: (map['name'] ?? '').toString(),
       description: map['description']?.toString(),
       status: map['status']?.toString(),
       serviceCount: map['service_count'] == null
           ? null
-          : (map['service_count'] as num).toInt(),
+          : _toInt(map['service_count']),
     );
   }
 }

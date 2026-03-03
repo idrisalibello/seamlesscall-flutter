@@ -5,6 +5,7 @@ import 'package:seamlesscall/features/config/data/models/service_model.dart'; //
 import 'package:seamlesscall/features/config/data/models/pricing_profile_model.dart';
 import 'package:seamlesscall/features/config/data/models/pricing_adjustment_model.dart';
 import 'package:seamlesscall/features/config/data/models/pricing_profile_model.dart';
+import 'package:seamlesscall/features/config/data/models/coverage_model.dart';
 
 class AdminRepository {
   final DioClient _dioClient = DioClient();
@@ -284,6 +285,36 @@ class AdminRepository {
     } catch (e) {
       throw Exception('An unexpected error occurred: $e');
     }
+  }
+
+  Future<List<Coverage>> getCoverages() async {
+    try {
+      final response = await _dioClient.dio.get('/api/v1/admin/coverages');
+
+      if (response.statusCode == 200) {
+        return (response.data['data'] as List)
+            .map((e) => Coverage.fromMap(e))
+            .toList();
+      } else {
+        throw Exception('Failed to load coverages.');
+      }
+    } on DioException catch (e) {
+      throw Exception(
+        'Failed to load coverages: ${e.response?.data['messages'] ?? e.message}',
+      );
+    }
+  }
+
+  Future<void> createCoverage(Map<String, dynamic> data) async {
+    await _dioClient.dio.post('/api/v1/admin/coverages', data: data);
+  }
+
+  Future<void> updateCoverage(int id, Map<String, dynamic> data) async {
+    await _dioClient.dio.put('/api/v1/admin/coverages/$id', data: data);
+  }
+
+  Future<void> deleteCoverage(int id) async {
+    await _dioClient.dio.delete('/api/v1/admin/coverages/$id');
   }
 
   Future<void> updateService(
