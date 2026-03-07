@@ -19,7 +19,7 @@ class DioClient {
   DioClient._internal() {
     dio = Dio(
       BaseOptions(
-        baseUrl: 'http://10.176.85.176/seamless_call/',
+        baseUrl: 'http://10.183.159.176/seamless_call/',
         connectTimeout: const Duration(seconds: 60),
         receiveTimeout: const Duration(seconds: 15),
         headers: {

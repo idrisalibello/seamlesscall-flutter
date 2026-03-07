@@ -4,14 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'common/constants/theme.dart';
 import 'features/auth/presentation/splash_screen.dart';
 import 'features/auth/presentation/auth_providers.dart';
-
 import 'core/network/dio_client.dart';
+import 'core/theme/theme_providers.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() {
-  // Create a single Riverpod container for the whole app.
-  // This lets DioClient signal "auth expired" without importing UI/auth into DioClient.
   final container = ProviderContainer();
 
   DioClient.onAuthExpired = () {
@@ -31,18 +29,20 @@ void main() {
   );
 }
 
-class SeamlessCallApp extends StatelessWidget {
+class SeamlessCallApp extends ConsumerWidget {
   const SeamlessCallApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(themeSettingsProvider);
+
     return MaterialApp(
       navigatorKey: navigatorKey,
       title: 'SeamlessCall',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      theme: AppTheme.lightTheme(settings.preset),
+      darkTheme: AppTheme.darkTheme(settings.preset),
+      themeMode: settings.mode,
       home: const SplashScreen(),
     );
   }

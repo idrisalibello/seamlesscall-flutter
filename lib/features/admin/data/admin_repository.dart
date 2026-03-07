@@ -313,6 +313,15 @@ class AdminRepository {
     await _dioClient.dio.put('/api/v1/admin/coverages/$id', data: data);
   }
 
+  Future<Coverage> getCoverageDetails(int coverageId) async {
+    final coverages = await getCoverages();
+    try {
+      return coverages.firstWhere((c) => c.id == coverageId);
+    } catch (_) {
+      throw Exception('Coverage not found (id=$coverageId).');
+    }
+  }
+
   Future<void> deleteCoverage(int id) async {
     await _dioClient.dio.delete('/api/v1/admin/coverages/$id');
   }

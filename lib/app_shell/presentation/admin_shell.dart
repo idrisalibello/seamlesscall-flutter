@@ -30,6 +30,7 @@ import 'package:seamlesscall/features/config/pricing_screen.dart';
 import 'package:seamlesscall/features/config/coverage_screen.dart';
 import 'package:seamlesscall/features/config/availability_screen.dart';
 import 'package:seamlesscall/features/config/promotions_screen.dart';
+import 'package:seamlesscall/features/config/appearance_screen.dart';
 
 //reports
 import 'package:seamlesscall/features/reports/roles_permissions_report_screen.dart';
@@ -117,6 +118,8 @@ class _AdminShellState extends State<AdminShell> {
         return const AvailabilityScreen();
       case '/admin/config/promotions':
         return const PromotionsScreen();
+      case '/admin/config/appearance':
+        return const AppearanceScreen();
 
       // REPORTS
       case '/admin/reports/roles':
@@ -209,6 +212,7 @@ class _AdminShellState extends State<AdminShell> {
       item('Coverage', '/admin/config/coverage'),
       item('Availability', '/admin/config/availability'),
       item('Promotions', '/admin/config/promotions'),
+      item('Appearance', '/admin/config/appearance'),
 
       divider(),
       header('Reports'),

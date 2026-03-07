@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'package:seamlesscall/core/theme/theme_providers.dart';
 import 'package:seamlesscall/features/auth/presentation/auth_providers.dart';
 import 'package:seamlesscall/features/auth/domain/appuser.dart';
 import 'package:seamlesscall/features/auth/data/auth_repository.dart';
@@ -118,17 +118,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final themeSettings = ref.watch(themeSettingsProvider);
 
     return Scaffold(
       body: Stack(
         children: [
           AnimatedContainer(
             duration: const Duration(seconds: 6),
-            decoration: BoxDecoration(gradient: AppPalette.brandGradient),
+            decoration: BoxDecoration(
+              gradient: themeSettings.preset.backgroundGradient,
+            ),
           ),
           Positioned.fill(
             child: Container(
-              color: theme.brightness == Brightness.light
+              color: theme.brightness == Brightness.dark
                   ? Colors.black.withOpacity(0.03)
                   : Colors.black.withOpacity(0.25),
             ),

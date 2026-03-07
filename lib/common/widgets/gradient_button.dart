@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../constants/theme.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:seamlesscall/core/theme/theme_providers.dart';
 
-class GradientButton extends StatelessWidget {
+class GradientButton extends ConsumerWidget {
   final String label;
   final VoidCallback onPressed;
   final double? height;
@@ -18,14 +19,13 @@ class GradientButton extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final gradient = AppPalette.brandGradient;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final gradient = ref.watch(themeSettingsProvider).preset.accentGradient;
 
     return SizedBox(
       width: width ?? double.infinity,
       height: height ?? 52,
       child: Material(
-        // ⭐ REQUIRED
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
@@ -48,7 +48,10 @@ class GradientButton extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (leading != null) ...[leading!, const SizedBox(width: 10)],
+                  if (leading != null) ...[
+                    leading!,
+                    const SizedBox(width: 10),
+                  ],
                   Text(
                     label,
                     style: const TextStyle(

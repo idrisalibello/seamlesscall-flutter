@@ -169,15 +169,17 @@ class _CoverageScreenState extends State<CoverageScreen> {
                           child: Card(
                             child: ListTile(
                               leading: Icon(
-                                coverage.isActive ? Icons.public : Icons.public_off,
+                                coverage.isActive
+                                    ? Icons.public
+                                    : Icons.public_off,
                               ),
                               title: Text(coverage.name),
                               subtitle: Text(
                                 coverage.region.isEmpty ? '-' : coverage.region,
                               ),
                               trailing: const Icon(Icons.arrow_forward_ios),
-                              onTap: () {
-                                Navigator.push(
+                              onTap: () async {
+                                final changed = await Navigator.push<bool>(
                                   context,
                                   MaterialPageRoute(
                                     builder: (_) => CoverageDetailsScreen(
@@ -185,6 +187,10 @@ class _CoverageScreenState extends State<CoverageScreen> {
                                     ),
                                   ),
                                 );
+
+                                if (changed == true) {
+                                  setState(() => _reload());
+                                }
                               },
                             ),
                           ),

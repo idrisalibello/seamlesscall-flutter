@@ -15,6 +15,7 @@ class CoverageDetailsScreen extends StatefulWidget {
 class _CoverageDetailsScreenState extends State<CoverageDetailsScreen> {
   final AdminRepository _adminRepository = AdminRepository();
   late Future<Coverage> _future;
+  bool _changed = false;
 
   @override
   void initState() {
@@ -104,9 +105,8 @@ class _CoverageDetailsScreenState extends State<CoverageDetailsScreen> {
     );
 
     if (saved == true) {
+      _changed = true;
       setState(() => _reload());
-      // tell previous screen something changed
-      // (only when user navigates back)
     }
   }
 
@@ -115,7 +115,9 @@ class _CoverageDetailsScreenState extends State<CoverageDetailsScreen> {
       await _adminRepository.updateCoverage(current.id, {
         'is_active': current.isActive ? 0 : 1,
       });
+      _changed = true;
       setState(() => _reload());
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(current.isActive ? 'Disabled' : 'Enabled'),
@@ -153,7 +155,7 @@ class _CoverageDetailsScreenState extends State<CoverageDetailsScreen> {
     try {
       await _adminRepository.deleteCoverage(current.id);
       if (!mounted) return;
-      Navigator.pop(context, true); // tell list to refresh
+      Navigator.pop(context, true); // refresh list
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Delete failed: $e')),
@@ -163,87 +165,101 @@ class _CoverageDetailsScreenState extends State<CoverageDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return MainLayout(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: FutureBuilder<Coverage>(
-          future: _future,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (snapshot.hasError) {
-              return Center(child: Text('Error: ${snapshot.error}'));
-            }
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.pop(context, _changed);
+        return false;
+      },
+      child: MainLayout(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: FutureBuilder<Coverage>(
+            future: _future,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Center(child: Text('Error: ${snapshot.error}'));
+              }
 
-            final coverage = snapshot.data!;
+              final coverage = snapshot.data!;
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Coverage Details',
-                        style: Theme.of(context).textTheme.headlineSmall,
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Coverage Details',
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
                       ),
-                    ),
-                    IconButton(
-                      tooltip: 'Refresh',
-                      onPressed: () => setState(() => _reload()),
-                      icon: const Icon(Icons.refresh),
-                    )
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  coverage.name,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 20),
-
-                Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.location_city),
-                    title: const Text('Region'),
-                    subtitle: Text(coverage.region.isEmpty ? '-' : coverage.region),
+                      IconButton(
+                        tooltip: 'Refresh',
+                        onPressed: () => setState(() => _reload()),
+                        icon: const Icon(Icons.refresh),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 12),
-                Card(
-                  child: ListTile(
-                    leading: Icon(coverage.isActive ? Icons.public : Icons.public_off),
-                    title: const Text('Status'),
-                    subtitle: Text(coverage.isActive ? 'Active' : 'Inactive'),
+                  const SizedBox(height: 12),
+
+                  Text(
+                    coverage.name,
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
-                ),
+                  const SizedBox(height: 20),
 
-                const SizedBox(height: 24),
+                  Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.location_city),
+                      title: const Text('Region'),
+                      subtitle:
+                          Text(coverage.region.isEmpty ? '-' : coverage.region),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
 
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: () => _openEditDialog(coverage),
-                      icon: const Icon(Icons.edit),
-                      label: const Text('Edit'),
+                  Card(
+                    child: ListTile(
+                      leading: Icon(
+                        coverage.isActive ? Icons.public : Icons.public_off,
+                      ),
+                      title: const Text('Status'),
+                      subtitle: Text(coverage.isActive ? 'Active' : 'Inactive'),
                     ),
-                    OutlinedButton.icon(
-                      onPressed: () => _toggleActive(coverage),
-                      icon: const Icon(Icons.toggle_on),
-                      label: Text(coverage.isActive ? 'Disable' : 'Enable'),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: () => _deleteCoverage(coverage),
-                      icon: const Icon(Icons.delete),
-                      label: const Text('Delete'),
-                    ),
-                  ],
-                ),
-              ],
-            );
-          },
+                  ),
+                  const SizedBox(height: 24),
+
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: () => _openEditDialog(coverage),
+                        icon: const Icon(Icons.edit),
+                        label: const Text('Edit'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () => _toggleActive(coverage),
+                        icon: const Icon(Icons.toggle_on),
+                        label:
+                            Text(coverage.isActive ? 'Disable' : 'Enable'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () => _deleteCoverage(coverage),
+                        icon: const Icon(Icons.delete),
+                        label: const Text('Delete'),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          ),
         ),
       ),
+    );
+  }
+}
