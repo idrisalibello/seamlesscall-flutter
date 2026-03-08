@@ -56,14 +56,14 @@ class ThemeSettingsController extends StateNotifier<ThemeSettingsState> {
   final FlutterSecureStorage _storage;
 
   ThemeSettingsController({FlutterSecureStorage? storage})
-      : _storage = storage ?? const FlutterSecureStorage(),
-        super(
-          const ThemeSettingsState(
-            mode: ThemeMode.system,
-            preset: AppThemeCatalog.darkBlue,
-            loaded: false,
-          ),
-        ) {
+    : _storage = storage ?? const FlutterSecureStorage(),
+      super(
+        const ThemeSettingsState(
+          mode: ThemeMode.dark,
+          preset: AppThemeCatalog.darkBlue,
+          loaded: false,
+        ),
+      ) {
     _load();
   }
 
@@ -71,8 +71,17 @@ class ThemeSettingsController extends StateNotifier<ThemeSettingsState> {
     final modeRaw = await _storage.read(key: _themeModeKey);
     final presetRaw = await _storage.read(key: _themePresetKey);
 
+    final resolvedMode = (() {
+      final decoded = _decodeThemeMode(modeRaw);
+      // safe default for existing installs that previously followed system
+      if (modeRaw == null || decoded == ThemeMode.system) {
+        return ThemeMode.dark;
+      }
+      return decoded;
+    })();
+
     state = state.copyWith(
-      mode: _decodeThemeMode(modeRaw),
+      mode: resolvedMode,
       preset: AppThemeCatalog.byId(presetRaw ?? AppThemeCatalog.darkBlue.id),
       loaded: true,
     );
@@ -91,5 +100,5 @@ class ThemeSettingsController extends StateNotifier<ThemeSettingsState> {
 
 final themeSettingsProvider =
     StateNotifierProvider<ThemeSettingsController, ThemeSettingsState>((ref) {
-  return ThemeSettingsController();
-});
+      return ThemeSettingsController();
+    });

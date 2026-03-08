@@ -30,7 +30,7 @@ class AppThemeCatalog {
       end: Alignment.bottomRight,
     ),
     accentGradient: LinearGradient(
-      colors: [Color(0xFF3A7BFF), Color(0xFF4CD6FF)],
+      colors: [Color.fromARGB(255, 13, 49, 121), Color.fromARGB(255, 110, 81, 240)],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     ),

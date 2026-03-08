@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:seamlesscall/app_shell/presentation/customer_shell.dart';
+import 'package:seamlesscall/core/theme/theme_providers.dart';
 import '../../../common/widgets/gradient_button.dart';
 import 'login_screen.dart';
 
@@ -113,22 +114,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final themeSettings = ref.watch(themeSettingsProvider);
 
     return Scaffold(
       body: Stack(
         children: [
           AnimatedContainer(
             duration: const Duration(seconds: 5),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color(0xFF001F4D),
-                  Color(0xFF003C8F),
-                  Color(0xFF0059FF),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+            decoration: BoxDecoration(
+              gradient: themeSettings.preset.backgroundGradient,
             ),
           ),
           Positioned.fill(

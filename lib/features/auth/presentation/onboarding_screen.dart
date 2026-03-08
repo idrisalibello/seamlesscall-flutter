@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:seamlesscall/features/auth/presentation/login_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:seamlesscall/core/theme/theme_providers.dart';
 import '../../../common/widgets/logo_widget.dart';
 import '../../../common/widgets/gradient_button.dart';
 
-class OnboardingScreen extends StatefulWidget {
+class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
   @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
+  @override
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen>
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     with TickerProviderStateMixin {
   final PageController _pageController = PageController();
   int _current = 0;
@@ -149,6 +152,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
   @override
   Widget build(BuildContext context) {
+    final themeSettings = ref.watch(themeSettingsProvider);
     return Scaffold(
       body: AnimatedBuilder(
         animation: _alignmentAnim,
@@ -156,10 +160,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           return Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: const [
-                  Color.fromARGB(255, 4, 23, 59),
-                  Color.fromARGB(255, 1, 62, 95),
-                ],
+                colors:
+                    (themeSettings.preset.backgroundGradient as LinearGradient)
+                        .colors,
                 begin: _alignmentAnim.value,
                 end: Alignment(
                   -_alignmentAnim.value.x,

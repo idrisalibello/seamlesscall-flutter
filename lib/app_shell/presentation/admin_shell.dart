@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:seamlesscall/core/theme/theme_providers.dart';
 import 'package:seamlesscall/features/config/categories_screen.dart';
 
 // dashboard
@@ -32,7 +34,7 @@ import 'package:seamlesscall/features/config/availability_screen.dart';
 import 'package:seamlesscall/features/config/promotions_screen.dart';
 import 'package:seamlesscall/features/config/appearance_screen.dart';
 
-//reports
+// reports
 import 'package:seamlesscall/features/reports/roles_permissions_report_screen.dart';
 import 'package:seamlesscall/features/reports/integrations_report_screen.dart';
 import 'package:seamlesscall/features/reports/feature_toggles_report_screen.dart';
@@ -49,14 +51,14 @@ import 'package:seamlesscall/features/admin/presentation/admin_provider_applicat
 import 'package:seamlesscall/features/admin/presentation/create_admin_user_screen.dart';
 import 'package:seamlesscall/features/system/presentation/users_list_screen.dart';
 
-class AdminShell extends StatefulWidget {
+class AdminShell extends ConsumerStatefulWidget {
   const AdminShell({super.key});
 
   @override
-  State<AdminShell> createState() => _AdminShellState();
+  ConsumerState<AdminShell> createState() => _AdminShellState();
 }
 
-class _AdminShellState extends State<AdminShell> {
+class _AdminShellState extends ConsumerState<AdminShell> {
   String _activeRoute = '/admin/dashboard';
 
   void _navigate(String route) {
@@ -68,12 +70,10 @@ class _AdminShellState extends State<AdminShell> {
       case '/admin/dashboard':
         return const DashboardScreen();
 
-      // operations
       case '/admin/jobs/active':
         return const ActiveJobsScreen();
       case '/admin/jobs/pending':
         return const PendingJobsScreen();
-
       case '/admin/jobs/scheduled':
         return const ScheduledJobsScreen();
       case '/admin/jobs/cancelled':
@@ -83,7 +83,6 @@ class _AdminShellState extends State<AdminShell> {
       case '/admin/escalations':
         return const EscalationsScreen();
 
-      // people
       case '/admin/customers':
         return const CustomersScreen();
       case '/admin/providers':
@@ -95,7 +94,6 @@ class _AdminShellState extends State<AdminShell> {
       case '/admin/providers/performance':
         return const ProviderPerformanceScreen();
 
-      // finance
       case '/admin/finance/earnings':
         return const EarningsOverviewScreen();
       case '/admin/finance/payouts':
@@ -107,7 +105,6 @@ class _AdminShellState extends State<AdminShell> {
       case '/admin/finance/ledger':
         return const LedgerScreen();
 
-      // config
       case '/admin/config/categories':
         return const CategoriesScreen();
       case '/admin/config/pricing':
@@ -121,42 +118,29 @@ class _AdminShellState extends State<AdminShell> {
       case '/admin/config/appearance':
         return const AppearanceScreen();
 
-      // REPORTS
       case '/admin/reports/roles':
         return const RolesPermissionsReportScreen();
-
       case '/admin/reports/integrations':
         return const IntegrationsReportScreen();
-
       case '/admin/reports/features':
         return const FeatureTogglesReportScreen();
-
       case '/admin/reports/maintenance':
         return const MaintenanceModeReportScreen();
-
       case '/admin/reports/audit-trail':
         return const AuditTrailReportScreen();
-
       case '/admin/reports/system-health':
         return const SystemHealthReportScreen();
 
-      // system
-
       case '/admin/system/create-admin':
         return const CreateAdminUserScreen();
-
       case '/admin/system/users':
         return const UsersListScreen();
-
       case '/admin/system/roles':
         return const RolesPermissionsScreen();
-
       case '/admin/system/integrations':
         return const IntegrationsScreen();
-
       case '/admin/system/features':
         return const FeatureTogglesScreen();
-
       case '/admin/system/maintenance':
         return const MaintenanceModeScreen();
 
@@ -172,9 +156,9 @@ class _AdminShellState extends State<AdminShell> {
     PopupMenuDivider divider() => const PopupMenuDivider();
 
     PopupMenuItem<String> header(String label) => PopupMenuItem(
-      enabled: false,
-      child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-    );
+          enabled: false,
+          child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+        );
 
     return [
       header('Dashboard'),
@@ -223,7 +207,6 @@ class _AdminShellState extends State<AdminShell> {
       item('Audit Trail', '/admin/reports/audit-trail'),
       item('System Health', '/admin/reports/system-health'),
 
-      //
       divider(),
       header('System'),
       item('Manage Users', '/admin/system/users'),
@@ -238,6 +221,13 @@ class _AdminShellState extends State<AdminShell> {
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 700;
+    final theme = Theme.of(context);
+    final preset = ref.watch(themeSettingsProvider).preset;
+    final accent = preset.accentGradient.colors.first;
+    final sidebarBg = theme.brightness == Brightness.dark
+        ? preset.backgroundGradient.colors.first.withOpacity(0.92)
+        : theme.colorScheme.surface;
+    final selectedBg = accent.withOpacity(theme.brightness == Brightness.dark ? 0.20 : 0.12);
 
     return Scaffold(
       appBar: isMobile
@@ -256,12 +246,13 @@ class _AdminShellState extends State<AdminShell> {
           ? _resolveScreen()
           : Row(
               children: [
-                SizedBox(
+                Container(
                   width: 280,
+                  color: sidebarBg,
                   child: ListView(
                     children: _mobileMenuItems().map((entry) {
                       if (entry is PopupMenuDivider) {
-                        return const Divider(height: 1);
+                        return Divider(height: 1, color: theme.dividerColor);
                       }
 
                       if (entry is PopupMenuItem<String>) {
@@ -269,18 +260,33 @@ class _AdminShellState extends State<AdminShell> {
                           return Padding(
                             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                             child: DefaultTextStyle(
-                              style: const TextStyle(
+                              style: theme.textTheme.titleSmall!.copyWith(
                                 fontWeight: FontWeight.bold,
+                                color: theme.textTheme.bodySmall?.color,
                               ),
                               child: entry.child!,
                             ),
                           );
                         }
 
-                        return ListTile(
-                          title: entry.child,
-                          selected: _activeRoute == entry.value,
-                          onTap: () => _navigate(entry.value!),
+                        final selected = _activeRoute == entry.value;
+
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                          child: ListTile(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            tileColor: selected ? selectedBg : Colors.transparent,
+                            selected: selected,
+                            selectedColor: accent,
+                            iconColor: selected ? accent : theme.iconTheme.color,
+                            textColor: selected
+                                ? accent
+                                : theme.textTheme.bodyMedium?.color,
+                            title: entry.child,
+                            onTap: () => _navigate(entry.value!),
+                          ),
                         );
                       }
 
@@ -288,7 +294,7 @@ class _AdminShellState extends State<AdminShell> {
                     }).toList(),
                   ),
                 ),
-                const VerticalDivider(width: 1),
+                VerticalDivider(width: 1, color: theme.dividerColor),
                 Expanded(child: _resolveScreen()),
               ],
             ),

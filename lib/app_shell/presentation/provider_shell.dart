@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:seamlesscall/core/theme/theme_providers.dart';
 import '../../features/providers/presentation/provider_home_screen.dart';
 import '../../features/providers/presentation/provider_earnings_history_screen.dart';
 import '../../features/providers/presentation/provider_availability_screen.dart';
 import '../../features/providers/presentation/provider_document_upload_screen.dart';
 import '../../features/providers/presentation/provider_profile_screen.dart';
 
-class ProviderShell extends StatefulWidget {
+class ProviderShell extends ConsumerStatefulWidget {
   const ProviderShell({super.key});
 
   @override
-  State<ProviderShell> createState() => _ProviderShellState();
+  ConsumerState<ProviderShell> createState() => _ProviderShellState();
 }
 
-class _ProviderShellState extends State<ProviderShell>
+class _ProviderShellState extends ConsumerState<ProviderShell>
     with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
 
@@ -36,8 +38,8 @@ class _ProviderShellState extends State<ProviderShell>
     )..repeat(reverse: true);
 
     _glow = Tween<double>(
-      begin: 0.2,
-      end: 0.6,
+      begin: 0.18,
+      end: 0.42,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
@@ -49,19 +51,29 @@ class _ProviderShellState extends State<ProviderShell>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final preset = ref.watch(themeSettingsProvider).preset;
+    final backgroundColors = preset.backgroundGradient.colors;
+    final accentColors = preset.accentGradient.colors;
+
+    final shellBg = backgroundColors.first;
+    final navBg = theme.brightness == Brightness.dark
+        ? const Color(0xFF0F1526)
+        : theme.colorScheme.surface;
+
     return AnimatedBuilder(
       animation: _glow,
       builder: (context, _) {
         return Scaffold(
-          backgroundColor: const Color(0xFF0B1120),
+          backgroundColor: shellBg,
           body: _pages[_currentIndex],
           bottomNavigationBar: Container(
             decoration: BoxDecoration(
-              color: const Color(0xFF0F1526),
+              color: navBg,
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.blue.withOpacity(_glow.value * 0.5),
+                  color: accentColors.first.withOpacity(_glow.value),
                   blurRadius: 22,
                   spreadRadius: 2,
                 ),
@@ -74,10 +86,12 @@ class _ProviderShellState extends State<ProviderShell>
               child: BottomNavigationBar(
                 currentIndex: _currentIndex,
                 onTap: (i) => setState(() => _currentIndex = i),
-                backgroundColor: const Color(0xFF0F1526),
+                backgroundColor: navBg,
                 elevation: 0,
-                selectedItemColor: Colors.blueAccent,
-                unselectedItemColor: Colors.white70,
+                selectedItemColor: accentColors.first,
+                unselectedItemColor: theme.brightness == Brightness.dark
+                    ? Colors.white70
+                    : theme.colorScheme.onSurface.withOpacity(0.7),
                 type: BottomNavigationBarType.fixed,
                 selectedFontSize: 12,
                 unselectedFontSize: 12,
