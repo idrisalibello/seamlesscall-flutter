@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:seamlesscall/core/network/dio_client.dart';
 
 import 'category_model.dart';
+import 'promotion_model.dart';
 import 'service_model.dart';
 
 class CustomerRepository {
@@ -47,8 +48,6 @@ class CustomerRepository {
     }
   }
 
-  /// There is no single backend endpoint for "all services" right now.
-  /// We derive it by fetching services per category (then flatten).
   Future<List<Service>> getAllServices() async {
     final categories = await getCategories();
     final all = <Service>[];
@@ -59,5 +58,26 @@ class CustomerRepository {
     }
 
     return all;
+  }
+
+  Future<List<CustomerPromotion>> getActivePromotions() async {
+    try {
+      final res = await _dioClient.dio.get('/api/v1/promotions/active');
+
+      if (res.statusCode == 200) {
+        final data = (res.data['data'] as List<dynamic>? ?? const []);
+        return data
+            .map((e) => CustomerPromotion.fromMap(Map<String, dynamic>.from(e)))
+            .toList();
+      }
+
+      throw Exception('Failed to load promotions. Status: ${res.statusCode}');
+    } on DioException catch (e) {
+      throw Exception(
+        'Failed to load promotions: ${e.response?.data['messages'] ?? e.message}',
+      );
+    } catch (e) {
+      throw Exception('An unexpected error occurred: $e');
+    }
   }
 }

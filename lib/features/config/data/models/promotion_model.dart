@@ -8,6 +8,7 @@ class Promotion {
   final String? code;
   final int? serviceId;
   final int? providerId;
+  final int? categoryId;
   final String? startDate;
   final String? endDate;
   final int? usageLimit;
@@ -27,6 +28,7 @@ class Promotion {
     this.code,
     this.serviceId,
     this.providerId,
+    this.categoryId,
     this.startDate,
     this.endDate,
     this.usageLimit,
@@ -60,6 +62,7 @@ class Promotion {
       code: map['code']?.toString(),
       serviceId: _asInt(map['service_id']),
       providerId: _asInt(map['provider_id']),
+      categoryId: _asInt(map['category_id']),
       startDate: map['start_date']?.toString(),
       endDate: map['end_date']?.toString(),
       usageLimit: _asInt(map['usage_limit']),
@@ -80,6 +83,7 @@ class Promotion {
       'code': code,
       'service_id': serviceId,
       'provider_id': providerId,
+      'category_id': categoryId,
       'start_date': startDate,
       'end_date': endDate,
       'usage_limit': usageLimit,
@@ -97,6 +101,7 @@ class Promotion {
     String? code,
     int? serviceId,
     int? providerId,
+    int? categoryId,
     String? startDate,
     String? endDate,
     int? usageLimit,
@@ -115,6 +120,7 @@ class Promotion {
       code: code ?? this.code,
       serviceId: serviceId ?? this.serviceId,
       providerId: providerId ?? this.providerId,
+      categoryId: categoryId ?? this.categoryId,
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
       usageLimit: usageLimit ?? this.usageLimit,
@@ -128,16 +134,27 @@ class Promotion {
   String get targetLabel {
     switch (promotionType) {
       case 'service':
-        if ((categoryName ?? '').isNotEmpty && (serviceName ?? '').isNotEmpty) {
-          return '$categoryName / $serviceName';
+        if (serviceName != null && serviceName!.isNotEmpty) {
+          return serviceName!;
         }
-        return serviceName ?? 'Service';
+
+        if (categoryName != null && categoryName!.isNotEmpty) {
+          return '$categoryName (All services)';
+        }
+
+        return 'Service';
+
       case 'provider':
-        return providerName ?? 'Provider #${providerId ?? ''}';
+        return providerName ?? 'Provider';
+
       case 'coupon':
         return code ?? 'Coupon';
-      default:
+
+      case 'global':
         return 'All services';
+
+      default:
+        return 'Unknown';
     }
   }
 
@@ -149,8 +166,12 @@ class Promotion {
   }
 
   String get validityLabel {
-    final s = startDate == null || startDate!.isEmpty ? 'Any time' : startDate!.split(' ').first;
-    final e = endDate == null || endDate!.isEmpty ? 'Open-ended' : endDate!.split(' ').first;
+    final s = startDate == null || startDate!.isEmpty
+        ? 'Any time'
+        : startDate!.split(' ').first;
+    final e = endDate == null || endDate!.isEmpty
+        ? 'Open-ended'
+        : endDate!.split(' ').first;
     return '$s → $e';
   }
 }

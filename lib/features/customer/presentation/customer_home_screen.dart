@@ -4,6 +4,7 @@ import 'package:seamlesscall/features/customer/presentation/apply_as_provider_sc
 import 'package:seamlesscall/features/customer/presentation/customer_chat_screen.dart';
 import 'package:seamlesscall/features/customer/presentation/customer_services_list.dart';
 import 'package:seamlesscall/features/customer/presentation/job_tracking_screen.dart';
+import 'package:seamlesscall/features/customer/presentation/widgets/customer_promotions_section.dart';
 
 class CustomerHomeScreen extends StatefulWidget {
   const CustomerHomeScreen({super.key});
@@ -122,6 +123,32 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                           color: cs.onBackground,
                         ),
                       ),
+                    ),
+                  ),
+                ),
+
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+                    child: _AnimatedIn(
+                      delayMs: 160,
+                      child: Text(
+                        "Special promotions",
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          color: cs.onBackground,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                    child: _AnimatedIn(
+                      delayMs: 200,
+                      child: const CustomerPromotionsSection(),
                     ),
                   ),
                 ),

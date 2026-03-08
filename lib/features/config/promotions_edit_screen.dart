@@ -149,27 +149,27 @@ class _PromotionsEditScreenState extends State<PromotionsEditScreen> {
   }
 
   Promotion _buildPayload() {
-    return Promotion(
-      id: widget.existing?.id,
-      title: _titleCtrl.text.trim(),
-      description: _descriptionCtrl.text.trim().isEmpty ? null : _descriptionCtrl.text.trim(),
-      promotionType: _promotionType,
-      discountType: _discountType,
-      discountValue: double.tryParse(_discountValueCtrl.text.trim()) ?? 0,
-      code: _promotionType == 'coupon' && _codeCtrl.text.trim().isNotEmpty
-          ? _codeCtrl.text.trim().toUpperCase()
-          : null,
-      serviceId: _promotionType == 'service' ? _serviceId : null,
-      providerId: _promotionType == 'provider' ? _providerId : null,
-      startDate: _startDateCtrl.text.trim().isEmpty ? null : _startDateCtrl.text.trim(),
-      endDate: _endDateCtrl.text.trim().isEmpty ? null : _endDateCtrl.text.trim(),
-      usageLimit: _usageLimitCtrl.text.trim().isEmpty
-          ? null
-          : int.tryParse(_usageLimitCtrl.text.trim()),
-      status: _status,
-    );
-  }
-
+  return Promotion(
+    id: widget.existing?.id,
+    title: _titleCtrl.text.trim(),
+    description: _descriptionCtrl.text.trim().isEmpty ? null : _descriptionCtrl.text.trim(),
+    promotionType: _promotionType,
+    discountType: _discountType,
+    discountValue: double.tryParse(_discountValueCtrl.text.trim()) ?? 0,
+    code: _promotionType == 'coupon' && _codeCtrl.text.trim().isNotEmpty
+        ? _codeCtrl.text.trim().toUpperCase()
+        : null,
+    categoryId: _promotionType == 'service' ? _categoryId : null,
+    serviceId: _promotionType == 'service' ? _serviceId : null,
+    providerId: _promotionType == 'provider' ? _providerId : null,
+    startDate: _startDateCtrl.text.trim().isEmpty ? null : _startDateCtrl.text.trim(),
+    endDate: _endDateCtrl.text.trim().isEmpty ? null : _endDateCtrl.text.trim(),
+    usageLimit: _usageLimitCtrl.text.trim().isEmpty
+        ? null
+        : int.tryParse(_usageLimitCtrl.text.trim()),
+    status: _status,
+  );
+}
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -188,9 +188,9 @@ class _PromotionsEditScreenState extends State<PromotionsEditScreen> {
       Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$e')));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -242,10 +242,22 @@ class _PromotionsEditScreenState extends State<PromotionsEditScreen> {
                                 border: OutlineInputBorder(),
                               ),
                               items: const [
-                                DropdownMenuItem(value: 'global', child: Text('Global')),
-                                DropdownMenuItem(value: 'service', child: Text('Service')),
-                                DropdownMenuItem(value: 'provider', child: Text('Provider')),
-                                DropdownMenuItem(value: 'coupon', child: Text('Coupon')),
+                                DropdownMenuItem(
+                                  value: 'global',
+                                  child: Text('Global'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'service',
+                                  child: Text('Service'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'provider',
+                                  child: Text('Provider'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'coupon',
+                                  child: Text('Coupon'),
+                                ),
                               ],
                               onChanged: (v) {
                                 setState(() {
@@ -274,10 +286,17 @@ class _PromotionsEditScreenState extends State<PromotionsEditScreen> {
                                 border: OutlineInputBorder(),
                               ),
                               items: const [
-                                DropdownMenuItem(value: 'active', child: Text('Active')),
-                                DropdownMenuItem(value: 'inactive', child: Text('Inactive')),
+                                DropdownMenuItem(
+                                  value: 'active',
+                                  child: Text('Active'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'inactive',
+                                  child: Text('Inactive'),
+                                ),
                               ],
-                              onChanged: (v) => setState(() => _status = v ?? 'active'),
+                              onChanged: (v) =>
+                                  setState(() => _status = v ?? 'active'),
                             ),
                           ),
                         ],
@@ -305,17 +324,28 @@ class _PromotionsEditScreenState extends State<PromotionsEditScreen> {
                                 border: OutlineInputBorder(),
                               ),
                               items: const [
-                                DropdownMenuItem(value: 'percent', child: Text('Percent')),
-                                DropdownMenuItem(value: 'fixed', child: Text('Fixed amount')),
+                                DropdownMenuItem(
+                                  value: 'percent',
+                                  child: Text('Percent'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'fixed',
+                                  child: Text('Fixed amount'),
+                                ),
                               ],
-                              onChanged: (v) => setState(() => _discountType = v ?? 'percent'),
+                              onChanged: (v) => setState(
+                                () => _discountType = v ?? 'percent',
+                              ),
                             ),
                           ),
                           SizedBox(
                             width: 220,
                             child: TextFormField(
                               controller: _discountValueCtrl,
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
                               decoration: const InputDecoration(
                                 labelText: 'Discount value',
                                 border: OutlineInputBorder(),
@@ -357,7 +387,8 @@ class _PromotionsEditScreenState extends State<PromotionsEditScreen> {
                               border: OutlineInputBorder(),
                             ),
                             validator: (v) {
-                              if (_promotionType == 'coupon' && (v ?? '').trim().isEmpty) {
+                              if (_promotionType == 'coupon' &&
+                                  (v ?? '').trim().isEmpty) {
                                 return 'Coupon code is required';
                               }
                               return null;
@@ -367,60 +398,94 @@ class _PromotionsEditScreenState extends State<PromotionsEditScreen> {
 
                       if (_promotionType == 'service') ...[
                         const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
-                          children: [
-                            SizedBox(
-                              width: 260,
-                              child: DropdownButtonFormField<int?>(
-                                value: _categoryId,
-                                decoration: const InputDecoration(
-                                  labelText: 'Category',
-                                  border: OutlineInputBorder(),
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Service Target',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium,
                                 ),
-                                items: [
-                                  const DropdownMenuItem<int?>(value: null, child: Text('Select')),
-                                  ..._categories.map(
-                                    (c) => DropdownMenuItem<int?>(
-                                      value: c.id,
-                                      child: Text(c.name),
-                                    ),
-                                  ),
-                                ],
-                                onChanged: (v) => _loadServices(v),
-                              ),
-                            ),
-                            SizedBox(
-                              width: 300,
-                              child: DropdownButtonFormField<int?>(
-                                value: _serviceId,
-                                decoration: const InputDecoration(
-                                  labelText: 'Service',
-                                  border: OutlineInputBorder(),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  'Select a category. Selecting a service is optional. If no service is selected, the promotion will apply to all services in that category.',
                                 ),
-                                items: [
-                                  const DropdownMenuItem<int?>(value: null, child: Text('Select')),
-                                  ..._services.map(
-                                    (s) => DropdownMenuItem<int?>(
-                                      value: s.id,
-                                      child: Text(s.name),
+                                const SizedBox(height: 16),
+                                Wrap(
+                                  spacing: 12,
+                                  runSpacing: 12,
+                                  children: [
+                                    SizedBox(
+                                      width: 260,
+                                      child: DropdownButtonFormField<int?>(
+                                        value: _categoryId,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Category',
+                                          border: OutlineInputBorder(),
+                                        ),
+                                        items: [
+                                          const DropdownMenuItem<int?>(
+                                            value: null,
+                                            child: Text('Select category'),
+                                          ),
+                                          ..._categories.map(
+                                            (c) => DropdownMenuItem<int?>(
+                                              value: c.id,
+                                              child: Text(c.name),
+                                            ),
+                                          ),
+                                        ],
+                                        onChanged: (v) => _loadServices(v),
+                                        validator: (v) {
+                                          if (_promotionType == 'service' &&
+                                              v == null &&
+                                              _serviceId == null) {
+                                            return 'Select a category or a service';
+                                          }
+                                          return null;
+                                        },
+                                      ),
                                     ),
-                                  ),
-                                ],
-                                onChanged: (v) => setState(() => _serviceId = v),
-                                validator: (v) {
-                                  if (_promotionType == 'service' && v == null) {
-                                    return 'Select a service';
-                                  }
-                                  return null;
-                                },
-                              ),
+                                    SizedBox(
+                                      width: 320,
+                                      child: DropdownButtonFormField<int?>(
+                                        value: _serviceId,
+                                        decoration: const InputDecoration(
+                                          labelText:
+                                              'Specific service (optional)',
+                                          border: OutlineInputBorder(),
+                                          helperText:
+                                              'Leave empty to apply to all services in the category',
+                                        ),
+                                        items: [
+                                          const DropdownMenuItem<int?>(
+                                            value: null,
+                                            child: Text(
+                                              'All services in category',
+                                            ),
+                                          ),
+                                          ..._services.map(
+                                            (s) => DropdownMenuItem<int?>(
+                                              value: s.id,
+                                              child: Text(s.name),
+                                            ),
+                                          ),
+                                        ],
+                                        onChanged: (v) =>
+                                            setState(() => _serviceId = v),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
                       ],
-
                       if (_promotionType == 'provider') ...[
                         const SizedBox(height: 12),
                         SizedBox(
@@ -432,11 +497,16 @@ class _PromotionsEditScreenState extends State<PromotionsEditScreen> {
                               border: OutlineInputBorder(),
                             ),
                             items: [
-                              const DropdownMenuItem<int?>(value: null, child: Text('Select')),
+                              const DropdownMenuItem<int?>(
+                                value: null,
+                                child: Text('Select'),
+                              ),
                               ..._providers.map(
                                 (p) => DropdownMenuItem<int?>(
                                   value: int.tryParse('${p['id']}'),
-                                  child: Text('${p['name'] ?? 'Provider'} (#${p['id']})'),
+                                  child: Text(
+                                    '${p['name'] ?? 'Provider'} (#${p['id']})',
+                                  ),
                                 ),
                               ),
                             ],
@@ -496,11 +566,15 @@ class _PromotionsEditScreenState extends State<PromotionsEditScreen> {
                           ElevatedButton.icon(
                             onPressed: _saving ? null : _save,
                             icon: const Icon(Icons.save),
-                            label: Text(_saving ? 'Saving...' : 'Save Promotion'),
+                            label: Text(
+                              _saving ? 'Saving...' : 'Save Promotion',
+                            ),
                           ),
                           const SizedBox(width: 12),
                           OutlinedButton(
-                            onPressed: _saving ? null : () => Navigator.pop(context),
+                            onPressed: _saving
+                                ? null
+                                : () => Navigator.pop(context),
                             child: const Text('Cancel'),
                           ),
                         ],
