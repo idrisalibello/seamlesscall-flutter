@@ -10,13 +10,15 @@ class CustomerRepository {
 
   Future<List<Category>> getCategories() async {
     try {
-      final res = await _dioClient.dio.get('/api/v1/admin/categories');
+      final res = await _dioClient.dio.get('/api/v1/customer/categories');
+
       if (res.statusCode == 200) {
         final list = (res.data['data'] as List)
             .map((e) => Category.fromMap(Map<String, dynamic>.from(e)))
             .toList();
         return list;
       }
+
       throw Exception('Failed to load categories. Status: ${res.statusCode}');
     } on DioException catch (e) {
       throw Exception(
@@ -30,14 +32,16 @@ class CustomerRepository {
   Future<List<Service>> getServicesByCategory(int categoryId) async {
     try {
       final res = await _dioClient.dio.get(
-        '/api/v1/admin/categories/$categoryId/services',
+        '/api/v1/customer/categories/$categoryId/services',
       );
+
       if (res.statusCode == 200) {
         final list = (res.data['data'] as List)
             .map((e) => Service.fromMap(Map<String, dynamic>.from(e)))
             .toList();
         return list;
       }
+
       throw Exception('Failed to load services. Status: ${res.statusCode}');
     } on DioException catch (e) {
       throw Exception(

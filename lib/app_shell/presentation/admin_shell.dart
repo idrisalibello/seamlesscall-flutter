@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:seamlesscall/core/theme/theme_providers.dart';
+import 'package:seamlesscall/features/auth/presentation/auth_providers.dart';
 import 'package:seamlesscall/features/config/categories_screen.dart';
 
 // dashboard
@@ -51,6 +52,28 @@ import 'package:seamlesscall/features/admin/presentation/admin_provider_applicat
 import 'package:seamlesscall/features/admin/presentation/create_admin_user_screen.dart';
 import 'package:seamlesscall/features/system/presentation/users_list_screen.dart';
 
+class _AdminMenuItem {
+  final String label;
+  final String route;
+  final String? permission;
+
+  const _AdminMenuItem({
+    required this.label,
+    required this.route,
+    this.permission,
+  });
+}
+
+class _AdminMenuSection {
+  final String title;
+  final List<_AdminMenuItem> items;
+
+  const _AdminMenuSection({
+    required this.title,
+    required this.items,
+  });
+}
+
 class AdminShell extends ConsumerStatefulWidget {
   const AdminShell({super.key});
 
@@ -61,12 +84,231 @@ class AdminShell extends ConsumerStatefulWidget {
 class _AdminShellState extends ConsumerState<AdminShell> {
   String _activeRoute = '/admin/dashboard';
 
+  static const List<_AdminMenuSection> _sections = [
+    _AdminMenuSection(
+      title: 'Dashboard',
+      items: [
+        _AdminMenuItem(
+          label: 'Dashboard',
+          route: '/admin/dashboard',
+          permission: 'view-dashboard',
+        ),
+      ],
+    ),
+    _AdminMenuSection(
+      title: 'Operations',
+      items: [
+        _AdminMenuItem(
+          label: 'Active Jobs',
+          route: '/admin/jobs/active',
+          permission: 'view-active-jobs',
+        ),
+        _AdminMenuItem(
+          label: 'Pending Jobs',
+          route: '/admin/jobs/pending',
+          permission: 'view-pending-jobs',
+        ),
+        _AdminMenuItem(
+          label: 'Scheduled Jobs',
+          route: '/admin/jobs/scheduled',
+          permission: 'view-scheduled-jobs',
+        ),
+        _AdminMenuItem(
+          label: 'Cancelled Jobs',
+          route: '/admin/jobs/cancelled',
+          permission: 'view-cancelled-jobs',
+        ),
+        _AdminMenuItem(
+          label: 'Dispatch Center',
+          route: '/admin/dispatch',
+          permission: 'use-dispatch-center',
+        ),
+        _AdminMenuItem(
+          label: 'Escalations',
+          route: '/admin/escalations',
+          permission: 'manage-escalations',
+        ),
+      ],
+    ),
+    _AdminMenuSection(
+      title: 'People',
+      items: [
+        _AdminMenuItem(
+          label: 'Customers',
+          route: '/admin/customers',
+          permission: 'view-customers',
+        ),
+        _AdminMenuItem(
+          label: 'Providers',
+          route: '/admin/providers',
+          permission: 'view-providers',
+        ),
+        _AdminMenuItem(
+          label: 'Provider Applications',
+          route: '/admin/providers/applications',
+          permission: 'manage-provider-applications',
+        ),
+        _AdminMenuItem(
+          label: 'Verification Queue',
+          route: '/admin/providers/verification',
+          permission: 'view-verification-queue',
+        ),
+        _AdminMenuItem(
+          label: 'Provider Performance',
+          route: '/admin/providers/performance',
+          permission: 'view-provider-performance',
+        ),
+      ],
+    ),
+    _AdminMenuSection(
+      title: 'Finance',
+      items: [
+        _AdminMenuItem(
+          label: 'Earnings Overview',
+          route: '/admin/finance/earnings',
+          permission: 'view-earnings-overview',
+        ),
+        _AdminMenuItem(
+          label: 'Provider Payouts',
+          route: '/admin/finance/payouts',
+          permission: 'view-payouts',
+        ),
+        _AdminMenuItem(
+          label: 'Platform Commissions',
+          route: '/admin/finance/commissions',
+          permission: 'view-platform-commissions',
+        ),
+        _AdminMenuItem(
+          label: 'Refunds & Disputes',
+          route: '/admin/finance/disputes',
+          permission: 'view-refunds-disputes',
+        ),
+        _AdminMenuItem(
+          label: 'Ledger',
+          route: '/admin/finance/ledger',
+          permission: 'view-ledger',
+        ),
+      ],
+    ),
+    _AdminMenuSection(
+      title: 'Configuration',
+      items: [
+        _AdminMenuItem(
+          label: 'Categories',
+          route: '/admin/config/categories',
+          permission: 'manage-categories',
+        ),
+        _AdminMenuItem(
+          label: 'Pricing',
+          route: '/admin/config/pricing',
+          permission: 'manage-pricing',
+        ),
+        _AdminMenuItem(
+          label: 'Coverage',
+          route: '/admin/config/coverage',
+          permission: 'manage-coverage',
+        ),
+        _AdminMenuItem(
+          label: 'Availability',
+          route: '/admin/config/availability',
+          permission: 'manage-availability',
+        ),
+        _AdminMenuItem(
+          label: 'Promotions',
+          route: '/admin/config/promotions',
+          permission: 'manage-promotions',
+        ),
+        _AdminMenuItem(
+          label: 'Appearance',
+          route: '/admin/config/appearance',
+          permission: 'manage-appearance',
+        ),
+      ],
+    ),
+    _AdminMenuSection(
+      title: 'Reports',
+      items: [
+        _AdminMenuItem(
+          label: 'Roles & Permissions',
+          route: '/admin/reports/roles',
+          permission: 'view-roles-permissions-report',
+        ),
+        _AdminMenuItem(
+          label: 'Integrations',
+          route: '/admin/reports/integrations',
+          permission: 'view-integrations-report',
+        ),
+        _AdminMenuItem(
+          label: 'Feature Toggles',
+          route: '/admin/reports/features',
+          permission: 'view-feature-toggles-report',
+        ),
+        _AdminMenuItem(
+          label: 'Maintenance Mode',
+          route: '/admin/reports/maintenance',
+          permission: 'view-maintenance-mode-report',
+        ),
+        _AdminMenuItem(
+          label: 'Audit Trail',
+          route: '/admin/reports/audit-trail',
+          permission: 'view-audit-trail-report',
+        ),
+        _AdminMenuItem(
+          label: 'System Health',
+          route: '/admin/reports/system-health',
+          permission: 'view-system-health-report',
+        ),
+      ],
+    ),
+    _AdminMenuSection(
+      title: 'System',
+      items: [
+        _AdminMenuItem(
+          label: 'Manage Users',
+          route: '/admin/system/users',
+          permission: 'view-users',
+        ),
+        _AdminMenuItem(
+          label: 'Create Admin User',
+          route: '/admin/system/create-admin',
+          permission: 'create-admin-users',
+        ),
+        _AdminMenuItem(
+          label: 'Roles & Permissions',
+          route: '/admin/system/roles',
+          permission: 'manage-roles',
+        ),
+        _AdminMenuItem(
+          label: 'Integrations',
+          route: '/admin/system/integrations',
+          permission: 'manage-integrations',
+        ),
+        _AdminMenuItem(
+          label: 'Feature Toggles',
+          route: '/admin/system/features',
+          permission: 'manage-feature-toggles',
+        ),
+        _AdminMenuItem(
+          label: 'Maintenance Mode',
+          route: '/admin/system/maintenance',
+          permission: 'manage-maintenance-mode',
+        ),
+      ],
+    ),
+  ];
+
   void _navigate(String route) {
     setState(() => _activeRoute = route);
   }
 
-  Widget _resolveScreen() {
-    switch (_activeRoute) {
+  bool _hasAccess(Set<String> permissions, bool adminBypass, String? permission) {
+    if (permission == null) return true;
+    if (adminBypass) return true;
+    return permissions.contains(permission);
+  }
+
+  Widget _screenForRoute(String route) {
+    switch (route) {
       case '/admin/dashboard':
         return const DashboardScreen();
 
@@ -145,11 +387,27 @@ class _AdminShellState extends ConsumerState<AdminShell> {
         return const MaintenanceModeScreen();
 
       default:
-        return Center(child: Text('Screen not found for $_activeRoute'));
+        return Center(child: Text('Screen not found for $route'));
     }
   }
 
-  List<PopupMenuEntry<String>> _mobileMenuItems() {
+  List<_AdminMenuSection> _allowedSections(Set<String> permissions, bool adminBypass) {
+    final sections = <_AdminMenuSection>[];
+
+    for (final section in _sections) {
+      final allowedItems = section.items
+          .where((item) => _hasAccess(permissions, adminBypass, item.permission))
+          .toList();
+
+      if (allowedItems.isNotEmpty) {
+        sections.add(_AdminMenuSection(title: section.title, items: allowedItems));
+      }
+    }
+
+    return sections;
+  }
+
+  List<PopupMenuEntry<String>> _mobileMenuItems(List<_AdminMenuSection> sections) {
     PopupMenuItem<String> item(String label, String route) =>
         PopupMenuItem(value: route, child: Text(label));
 
@@ -160,66 +418,61 @@ class _AdminShellState extends ConsumerState<AdminShell> {
           child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
         );
 
-    return [
-      header('Dashboard'),
-      item('Dashboard', '/admin/dashboard'),
+    final entries = <PopupMenuEntry<String>>[];
 
-      divider(),
-      header('Operations'),
-      item('Active Jobs', '/admin/jobs/active'),
-      item('Pending Jobs', '/admin/jobs/pending'),
-      item('Scheduled Jobs', '/admin/jobs/scheduled'),
-      item('Cancelled Jobs', '/admin/jobs/cancelled'),
-      item('Dispatch Center', '/admin/dispatch'),
-      item('Escalations', '/admin/escalations'),
+    for (var i = 0; i < sections.length; i++) {
+      final section = sections[i];
 
-      divider(),
-      header('People'),
-      item('Customers', '/admin/customers'),
-      item('Providers', '/admin/providers'),
-      item('Provider Applications', '/admin/providers/applications'),
-      item('Verification Queue', '/admin/providers/verification'),
-      item('Provider Performance', '/admin/providers/performance'),
+      if (i > 0) {
+        entries.add(divider());
+      }
 
-      divider(),
-      header('Finance'),
-      item('Earnings Overview', '/admin/finance/earnings'),
-      item('Provider Payouts', '/admin/finance/payouts'),
-      item('Platform Commissions', '/admin/finance/commissions'),
-      item('Refunds & Disputes', '/admin/finance/disputes'),
-      item('Ledger', '/admin/finance/ledger'),
+      entries.add(header(section.title));
+      for (final menuItem in section.items) {
+        entries.add(item(menuItem.label, menuItem.route));
+      }
+    }
 
-      divider(),
-      header('Configuration'),
-      item('Categories', '/admin/config/categories'),
-      item('Pricing', '/admin/config/pricing'),
-      item('Coverage', '/admin/config/coverage'),
-      item('Availability', '/admin/config/availability'),
-      item('Promotions', '/admin/config/promotions'),
-      item('Appearance', '/admin/config/appearance'),
+    return entries;
+  }
 
-      divider(),
-      header('Reports'),
-      item('Roles & Permissions', '/admin/reports/roles'),
-      item('Integrations', '/admin/reports/integrations'),
-      item('Feature Toggles', '/admin/reports/features'),
-      item('Maintenance Mode', '/admin/reports/maintenance'),
-      item('Audit Trail', '/admin/reports/audit-trail'),
-      item('System Health', '/admin/reports/system-health'),
-
-      divider(),
-      header('System'),
-      item('Manage Users', '/admin/system/users'),
-      item('Create Admin User', '/admin/system/create-admin'),
-      item('Roles & Permissions', '/admin/system/roles'),
-      item('Integrations', '/admin/system/integrations'),
-      item('Feature Toggles', '/admin/system/features'),
-      item('Maintenance Mode', '/admin/system/maintenance'),
-    ];
+  Widget _emptyAccessView() {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(24),
+        child: Text(
+          'No admin modules are available for this account.\nAssign at least one permission to the user’s role.',
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+    final user = authState.user;
+    final permissions = user?.permissions.toSet() ?? <String>{};
+
+    // Transitional bypass:
+    // If logged-in user is Admin but has no granular permissions in JWT yet,
+    // keep full access so existing admins are not locked out immediately.
+    final adminBypass = (user?.role == 'Admin') && permissions.isEmpty;
+
+    final sections = _allowedSections(permissions, adminBypass);
+    final allAllowedRoutes = sections.expand((section) => section.items).map((e) => e.route).toList();
+
+    if (allAllowedRoutes.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Admin')),
+        body: _emptyAccessView(),
+      );
+    }
+
+    final effectiveRoute = allAllowedRoutes.contains(_activeRoute)
+        ? _activeRoute
+        : allAllowedRoutes.first;
+
     final isMobile = MediaQuery.of(context).size.width < 700;
     final theme = Theme.of(context);
     final preset = ref.watch(themeSettingsProvider).preset;
@@ -227,7 +480,9 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     final sidebarBg = theme.brightness == Brightness.dark
         ? preset.backgroundGradient.colors.first.withOpacity(0.92)
         : theme.colorScheme.surface;
-    final selectedBg = accent.withOpacity(theme.brightness == Brightness.dark ? 0.20 : 0.12);
+    final selectedBg = accent.withOpacity(
+      theme.brightness == Brightness.dark ? 0.20 : 0.12,
+    );
 
     return Scaffold(
       appBar: isMobile
@@ -237,20 +492,20 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.menu),
                   onSelected: _navigate,
-                  itemBuilder: (_) => _mobileMenuItems(),
+                  itemBuilder: (_) => _mobileMenuItems(sections),
                 ),
               ],
             )
           : null,
       body: isMobile
-          ? _resolveScreen()
+          ? _screenForRoute(effectiveRoute)
           : Row(
               children: [
                 Container(
                   width: 280,
                   color: sidebarBg,
                   child: ListView(
-                    children: _mobileMenuItems().map((entry) {
+                    children: _mobileMenuItems(sections).map((entry) {
                       if (entry is PopupMenuDivider) {
                         return Divider(height: 1, color: theme.dividerColor);
                       }
@@ -269,7 +524,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                           );
                         }
 
-                        final selected = _activeRoute == entry.value;
+                        final selected = effectiveRoute == entry.value;
 
                         return Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
@@ -281,9 +536,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                             selected: selected,
                             selectedColor: accent,
                             iconColor: selected ? accent : theme.iconTheme.color,
-                            textColor: selected
-                                ? accent
-                                : theme.textTheme.bodyMedium?.color,
+                            textColor: selected ? accent : theme.textTheme.bodyMedium?.color,
                             title: entry.child,
                             onTap: () => _navigate(entry.value!),
                           ),
@@ -295,7 +548,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                   ),
                 ),
                 VerticalDivider(width: 1, color: theme.dividerColor),
-                Expanded(child: _resolveScreen()),
+                Expanded(child: _screenForRoute(effectiveRoute)),
               ],
             ),
     );
