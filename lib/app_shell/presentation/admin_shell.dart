@@ -454,9 +454,6 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     final user = authState.user;
     final permissions = user?.permissions.toSet() ?? <String>{};
 
-    // Transitional bypass:
-    // If logged-in user is Admin but has no granular permissions in JWT yet,
-    // keep full access so existing admins are not locked out immediately.
     final adminBypass = (user?.role == 'Admin') && permissions.isEmpty;
 
     final sections = _allowedSections(permissions, adminBypass);

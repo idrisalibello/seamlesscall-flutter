@@ -31,31 +31,29 @@ class _OtpScreenState extends State<OtpScreen> {
     _requestOtp(); // Request OTP when screen initializes
   }
 
-  Future<void> _requestOtp() async {
+    Future<void> _requestOtp() async {
     try {
-      String formattedPhone = widget.phone;
-      // Remove leading '0' if present and not already E.164
-      if (formattedPhone.startsWith('0') && !formattedPhone.startsWith('+')) {
-        formattedPhone =
-            '234${formattedPhone.substring(1)}'; // Assuming Nigeria's country code is 234
-      }
-      // Ensure it starts with '+'
-      if (!formattedPhone.startsWith('+')) {
-        formattedPhone = '+$formattedPhone';
-      }
+      final identifier = widget.phone.trim();
 
-      print('Attempting to request OTP for identifier: $formattedPhone');
-      await _authRepository.requestLoginOtp(formattedPhone);
-      print('OTP request successful for $formattedPhone');
+      print('Attempting to request OTP for identifier: $identifier');
+      await _authRepository.requestLoginOtp(identifier);
+      print('OTP request successful for $identifier');
+
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('OTP sent successfully')));
     } on DioError catch (e) {
       if (!mounted) return;
-      print('DioError during OTP request: ${e.response?.statusCode} - ${e.response?.data}');
+      print(
+        'DioError during OTP request: ${e.response?.statusCode} - ${e.response?.data}',
+      );
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to request OTP: ${e.response?.data['message'] ?? e.toString()}')),
+        SnackBar(
+          content: Text(
+            'Failed to request OTP: ${e.response?.data['message'] ?? e.toString()}',
+          ),
+        ),
       );
     } catch (e, stackTrace) {
       if (!mounted) return;

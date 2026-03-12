@@ -50,7 +50,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   }
 
   Future<void> _login() async {
-    final identifier = normalizePhone(_phoneController.text.trim());
+    final identifier = _phoneController.text.trim();
     final password = _passwordController.text.trim();
 
     if (identifier.isEmpty || password.isEmpty) {
