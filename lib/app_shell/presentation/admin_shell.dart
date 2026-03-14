@@ -301,9 +301,8 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     setState(() => _activeRoute = route);
   }
 
-  bool _hasAccess(Set<String> permissions, bool adminBypass, String? permission) {
+  bool _hasAccess(Set<String> permissions, String? permission) {
     if (permission == null) return true;
-    if (adminBypass) return true;
     return permissions.contains(permission);
   }
 
@@ -391,12 +390,12 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     }
   }
 
-  List<_AdminMenuSection> _allowedSections(Set<String> permissions, bool adminBypass) {
+  List<_AdminMenuSection> _allowedSections(Set<String> permissions) {
     final sections = <_AdminMenuSection>[];
 
     for (final section in _sections) {
       final allowedItems = section.items
-          .where((item) => _hasAccess(permissions, adminBypass, item.permission))
+          .where((item) => _hasAccess(permissions, item.permission))
           .toList();
 
       if (allowedItems.isNotEmpty) {
@@ -454,10 +453,11 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     final user = authState.user;
     final permissions = user?.permissions.toSet() ?? <String>{};
 
-    final adminBypass = (user?.role == 'Admin') && permissions.isEmpty;
-
-    final sections = _allowedSections(permissions, adminBypass);
-    final allAllowedRoutes = sections.expand((section) => section.items).map((e) => e.route).toList();
+    final sections = _allowedSections(permissions);
+    final allAllowedRoutes = sections
+        .expand((section) => section.items)
+        .map((e) => e.route)
+        .toList();
 
     if (allAllowedRoutes.isEmpty) {
       return Scaffold(

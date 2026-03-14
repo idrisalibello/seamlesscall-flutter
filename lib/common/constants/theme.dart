@@ -23,14 +23,14 @@ class AppThemeCatalog {
   static const darkBlue = AppThemeSpec(
     id: 'dark_blue',
     label: 'Dark Blue',
-    seed: Color(0xFF0B63F6),
+    seed: Color.fromARGB(255, 7, 43, 105),
     backgroundGradient: LinearGradient(
       colors: [Color(0xFF06152E), Color(0xFF0B3D91)],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     ),
     accentGradient: LinearGradient(
-      colors: [Color.fromARGB(255, 13, 49, 121), Color.fromARGB(255, 110, 81, 240)],
+      colors: [Color.fromARGB(255, 5, 34, 91), Color.fromARGB(219, 95, 136, 248)],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     ),
