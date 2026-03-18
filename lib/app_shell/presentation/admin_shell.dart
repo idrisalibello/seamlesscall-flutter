@@ -3,28 +3,42 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:seamlesscall/core/theme/theme_providers.dart';
 import 'package:seamlesscall/features/auth/presentation/auth_providers.dart';
 import 'package:seamlesscall/features/config/categories_screen.dart';
+
+// dashboard
 import 'package:seamlesscall/features/dashboard/dashboard_screen.dart';
+
+// operations
 import 'package:seamlesscall/features/operations/active_jobs_screen.dart';
 import 'package:seamlesscall/features/operations/pending_jobs_screen.dart';
 import 'package:seamlesscall/features/operations/scheduled_jobs_screen.dart';
 import 'package:seamlesscall/features/operations/cancelled_jobs_screen.dart';
 import 'package:seamlesscall/features/operations/dispatch_center_screen.dart';
 import 'package:seamlesscall/features/operations/escalations_screen.dart';
+
+// people
 import 'package:seamlesscall/features/people/customers_screen.dart';
 import 'package:seamlesscall/features/people/providers_screen.dart';
 import 'package:seamlesscall/features/people/verification_queue_screen.dart';
 import 'package:seamlesscall/features/people/provider_performance_screen.dart';
+
+// finance
 import 'package:seamlesscall/features/finance/earnings_overview_screen.dart';
 import 'package:seamlesscall/features/finance/provider_payouts_screen.dart';
 import 'package:seamlesscall/features/finance/platform_commissions_screen.dart';
 import 'package:seamlesscall/features/finance/refunds_disputes_screen.dart';
 import 'package:seamlesscall/features/finance/ledger_screen.dart';
+
+// config
 import 'package:seamlesscall/features/config/pricing_screen.dart';
 import 'package:seamlesscall/features/config/coverage_screen.dart';
 import 'package:seamlesscall/features/config/availability_screen.dart';
 import 'package:seamlesscall/features/config/promotions_screen.dart';
 import 'package:seamlesscall/features/config/appearance_screen.dart';
-import 'package:seamlesscall/features/reports/reports_dashboard_screen.dart';
+
+// reports
+import 'package:seamlesscall/features/reports/report_center_screen.dart';
+
+// system
 import 'package:seamlesscall/features/system/roles_permissions_screen.dart';
 import 'package:seamlesscall/features/system/integrations_screen.dart';
 import 'package:seamlesscall/features/system/feature_toggles_screen.dart';
@@ -212,7 +226,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
         _AdminMenuItem(
           label: 'Overview',
           route: '/admin/reports/overview',
-          permission: 'view-reports-dashboard',
+          permission: 'view-reports-overview',
         ),
         _AdminMenuItem(
           label: 'Operations Reports',
@@ -287,17 +301,11 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     return permissions.contains(permission);
   }
 
-  Widget _reportScreen(String initialSection, Set<String> permissions) {
-    return ReportsDashboardScreen(
-      initialSection: initialSection,
-      permissions: permissions,
-    );
-  }
-
-  Widget _screenForRoute(String route, Set<String> permissions) {
+  Widget _screenForRoute(String route) {
     switch (route) {
       case '/admin/dashboard':
         return const DashboardScreen();
+
       case '/admin/jobs/active':
         return const ActiveJobsScreen();
       case '/admin/jobs/pending':
@@ -310,6 +318,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
         return const DispatchCenterScreen();
       case '/admin/escalations':
         return const EscalationsScreen();
+
       case '/admin/customers':
         return const CustomersScreen();
       case '/admin/providers':
@@ -320,6 +329,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
         return const VerificationQueueScreen();
       case '/admin/providers/performance':
         return const ProviderPerformanceScreen();
+
       case '/admin/finance/earnings':
         return const EarningsOverviewScreen();
       case '/admin/finance/payouts':
@@ -330,6 +340,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
         return const RefundsDisputesScreen();
       case '/admin/finance/ledger':
         return const LedgerScreen();
+
       case '/admin/config/categories':
         return const CategoriesScreen();
       case '/admin/config/pricing':
@@ -342,18 +353,20 @@ class _AdminShellState extends ConsumerState<AdminShell> {
         return const PromotionsScreen();
       case '/admin/config/appearance':
         return const AppearanceScreen();
+
       case '/admin/reports/overview':
-        return _reportScreen('overview', permissions);
+        return const ReportCenterScreen(section: ReportSection.overview);
       case '/admin/reports/operations':
-        return _reportScreen('operations', permissions);
+        return const ReportCenterScreen(section: ReportSection.operations);
       case '/admin/reports/providers':
-        return _reportScreen('providers', permissions);
+        return const ReportCenterScreen(section: ReportSection.providers);
       case '/admin/reports/customers':
-        return _reportScreen('customers', permissions);
+        return const ReportCenterScreen(section: ReportSection.customers);
       case '/admin/reports/finance':
-        return _reportScreen('finance', permissions);
+        return const ReportCenterScreen(section: ReportSection.finance);
       case '/admin/reports/promotions':
-        return _reportScreen('promotions', permissions);
+        return const ReportCenterScreen(section: ReportSection.promotions);
+
       case '/admin/system/create-admin':
         return const CreateAdminUserScreen();
       case '/admin/system/users':
@@ -366,6 +379,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
         return const FeatureTogglesScreen();
       case '/admin/system/maintenance':
         return const MaintenanceModeScreen();
+
       default:
         return Center(child: Text('Screen not found for $route'));
     }
@@ -373,14 +387,17 @@ class _AdminShellState extends ConsumerState<AdminShell> {
 
   List<_AdminMenuSection> _allowedSections(Set<String> permissions) {
     final sections = <_AdminMenuSection>[];
+
     for (final section in _sections) {
       final allowedItems = section.items
           .where((item) => _hasAccess(permissions, item.permission))
           .toList();
+
       if (allowedItems.isNotEmpty) {
         sections.add(_AdminMenuSection(title: section.title, items: allowedItems));
       }
     }
+
     return sections;
   }
 
@@ -396,16 +413,20 @@ class _AdminShellState extends ConsumerState<AdminShell> {
         );
 
     final entries = <PopupMenuEntry<String>>[];
+
     for (var i = 0; i < sections.length; i++) {
       final section = sections[i];
+
       if (i > 0) {
         entries.add(divider());
       }
+
       entries.add(header(section.title));
       for (final menuItem in section.items) {
         entries.add(item(menuItem.label, menuItem.route));
       }
     }
+
     return entries;
   }
 
@@ -469,7 +490,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
             )
           : null,
       body: isMobile
-          ? _screenForRoute(effectiveRoute, permissions)
+          ? _screenForRoute(effectiveRoute)
           : Row(
               children: [
                 Container(
@@ -480,6 +501,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                       if (entry is PopupMenuDivider) {
                         return Divider(height: 1, color: theme.dividerColor);
                       }
+
                       if (entry is PopupMenuItem<String>) {
                         if (!entry.enabled) {
                           return Padding(
@@ -495,6 +517,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                         }
 
                         final selected = effectiveRoute == entry.value;
+
                         return Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                           child: ListTile(
@@ -511,12 +534,13 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                           ),
                         );
                       }
+
                       return const SizedBox.shrink();
                     }).toList(),
                   ),
                 ),
                 VerticalDivider(width: 1, color: theme.dividerColor),
-                Expanded(child: _screenForRoute(effectiveRoute, permissions)),
+                Expanded(child: _screenForRoute(effectiveRoute)),
               ],
             ),
     );
