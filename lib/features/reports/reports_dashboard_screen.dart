@@ -77,11 +77,19 @@ class _ReportsDashboardScreenState extends State<ReportsDashboardScreen>
   List<_ReportSection> _buildAllowedSections() {
     final all = <_ReportSection>[
       const _ReportSection('overview', 'Overview', 'view-reports-dashboard'),
-      const _ReportSection('operations', 'Operations', 'view-operations-reports'),
+      const _ReportSection(
+        'operations',
+        'Operations',
+        'view-operations-reports',
+      ),
       const _ReportSection('providers', 'Providers', 'view-provider-reports'),
       const _ReportSection('customers', 'Customers', 'view-customer-reports'),
       const _ReportSection('finance', 'Finance', 'view-finance-reports'),
-      const _ReportSection('promotions', 'Promotions', 'view-promotion-reports'),
+      const _ReportSection(
+        'promotions',
+        'Promotions',
+        'view-promotion-reports',
+      ),
     ];
 
     final allowed = all
@@ -221,7 +229,8 @@ class _ReportsDashboardScreenState extends State<ReportsDashboardScreen>
     try {
       final csv = _buildCsv(rows);
       await downloadTextFile(
-        filename: '${_currentSection.key}_${_ymd(_selectedRange!.start)}_to_${_ymd(_selectedRange!.end)}.csv',
+        filename:
+            '${_currentSection.key}_${_ymd(_selectedRange!.start)}_to_${_ymd(_selectedRange!.end)}.csv',
         content: csv,
         mimeType: 'text/csv;charset=utf-8',
       );
@@ -275,7 +284,8 @@ class _ReportsDashboardScreenState extends State<ReportsDashboardScreen>
       );
     }
 
-    final payload = _dataBySection[_currentSection.key] as Map<String, dynamic>?;
+    final payload =
+        _dataBySection[_currentSection.key] as Map<String, dynamic>?;
 
     return Scaffold(
       appBar: AppBar(
@@ -303,8 +313,8 @@ class _ReportsDashboardScreenState extends State<ReportsDashboardScreen>
                 : TabBarView(
                     controller: _tabController,
                     children: _sections.map((section) {
-                      final sectionPayload = _dataBySection[section.key]
-                          as Map<String, dynamic>?;
+                      final sectionPayload =
+                          _dataBySection[section.key] as Map<String, dynamic>?;
                       return _sectionView(section, sectionPayload);
                     }).toList(),
                   ),
@@ -352,8 +362,7 @@ class _ReportsDashboardScreenState extends State<ReportsDashboardScreen>
                   },
                 ),
               ),
-              if (_currentSection.key != 'overview')
-                _statusDropdown(payload),
+              if (_currentSection.key != 'overview') _statusDropdown(payload),
               if (_currentSection.key == 'operations' ||
                   _currentSection.key == 'finance')
                 _providerDropdown(payload),
@@ -396,7 +405,9 @@ class _ReportsDashboardScreenState extends State<ReportsDashboardScreen>
     if (_currentSection.key == 'operations') {
       statuses = List<String>.from(meta['available_statuses'] ?? const []);
     } else if (_currentSection.key == 'providers') {
-      statuses = List<String>.from(meta['available_provider_statuses'] ?? const []);
+      statuses = List<String>.from(
+        meta['available_provider_statuses'] ?? const [],
+      );
     } else if (_currentSection.key == 'finance') {
       statuses = List<String>.from(meta['commission_statuses'] ?? const []);
     } else if (_currentSection.key == 'promotions') {
@@ -417,10 +428,7 @@ class _ReportsDashboardScreenState extends State<ReportsDashboardScreen>
         items: [
           const DropdownMenuItem(value: 'All', child: Text('All')),
           ...statuses.map(
-            (status) => DropdownMenuItem(
-              value: status,
-              child: Text(status),
-            ),
+            (status) => DropdownMenuItem(value: status, child: Text(status)),
           ),
         ],
         onChanged: (value) {
@@ -450,7 +458,10 @@ class _ReportsDashboardScreenState extends State<ReportsDashboardScreen>
           isDense: true,
         ),
         items: [
-          const DropdownMenuItem<int?>(value: null, child: Text('All Providers')),
+          const DropdownMenuItem<int?>(
+            value: null,
+            child: Text('All Providers'),
+          ),
           ...providers.map(
             (provider) => DropdownMenuItem<int?>(
               value: provider['id'] as int?,
@@ -485,7 +496,10 @@ class _ReportsDashboardScreenState extends State<ReportsDashboardScreen>
           isDense: true,
         ),
         items: [
-          const DropdownMenuItem<int?>(value: null, child: Text('All Categories')),
+          const DropdownMenuItem<int?>(
+            value: null,
+            child: Text('All Categories'),
+          ),
           ...categories.map(
             (category) => DropdownMenuItem<int?>(
               value: category['id'] as int?,
@@ -517,14 +531,23 @@ class _ReportsDashboardScreenState extends State<ReportsDashboardScreen>
     final notes = (payload['notes'] as List? ?? const [])
         .map((e) => e.toString())
         .toList();
-    final pagination = (payload['pagination'] as Map?)?.cast<String, dynamic>() ?? {};
-    final breakdowns = (payload['breakdowns'] as Map?)?.cast<String, dynamic>() ?? {};
+    final pagination =
+        (payload['pagination'] as Map?)?.cast<String, dynamic>() ?? {};
+    final breakdowns =
+        (payload['breakdowns'] as Map?)?.cast<String, dynamic>() ?? {};
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Text(
+              _sectionTitle(section.key),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ),
           if (cards.isNotEmpty) _cardsGrid(cards),
           if (payload['job_trend'] is List) ...[
             const SizedBox(height: 14),
@@ -609,36 +632,44 @@ class _ReportsDashboardScreenState extends State<ReportsDashboardScreen>
   }
 
   Widget _cardsGrid(List<Map<String, dynamic>> cards) {
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      children: cards.map((card) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: cards.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4,
+        childAspectRatio: 1.7,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
+      itemBuilder: (_, i) {
+        final card = cards[i];
         final value = card['value'];
-        return SizedBox(
-          width: 220,
-          child: Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${card['label']}',
-                    style: Theme.of(context).textTheme.bodyMedium,
+
+        return Card(
+          elevation: 3,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${card['label']}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  value is num ? _formatValue(value) : '$value',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    value is num ? _formatValue(value) : '$value',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         );
-      }).toList(),
+      },
     );
   }
 
@@ -660,7 +691,9 @@ class _ReportsDashboardScreenState extends State<ReportsDashboardScreen>
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: DataTable(
-                columns: keys.map((key) => DataColumn(label: Text(_prettify(key)))).toList(),
+                columns: keys
+                    .map((key) => DataColumn(label: Text(_prettify(key))))
+                    .toList(),
                 rows: rows.take(8).map((row) {
                   return DataRow(
                     cells: keys
@@ -682,7 +715,9 @@ class _ReportsDashboardScreenState extends State<ReportsDashboardScreen>
       scrollDirection: Axis.horizontal,
       child: DataTable(
         columnSpacing: 20,
-        columns: keys.map((key) => DataColumn(label: Text(_prettify(key)))).toList(),
+        columns: keys
+            .map((key) => DataColumn(label: Text(_prettify(key))))
+            .toList(),
         rows: rows.map((row) {
           return DataRow(
             cells: keys
@@ -753,7 +788,9 @@ class _ReportsDashboardScreenState extends State<ReportsDashboardScreen>
 
   String _buildHtml(List<Map<String, dynamic>> rows) {
     final keys = rows.first.keys.toList(growable: false);
-    final head = keys.map((key) => '<th>${_escapeHtml(_prettify(key))}</th>').join();
+    final head = keys
+        .map((key) => '<th>${_escapeHtml(_prettify(key))}</th>')
+        .join();
     final body = rows.map((row) {
       final tds = keys
           .map((key) => '<td>${_escapeHtml('${row[key] ?? ''}')}</td>')
@@ -805,9 +842,30 @@ class _ReportsDashboardScreenState extends State<ReportsDashboardScreen>
         .join(' ');
   }
 
+  String _sectionTitle(String key) {
+    switch (key) {
+      case 'overview':
+        return 'Executive Overview';
+      case 'operations':
+        return 'Operations Intelligence';
+      case 'providers':
+        return 'Provider Intelligence';
+      case 'customers':
+        return 'Customer Intelligence';
+      case 'finance':
+        return 'Financial Intelligence';
+      case 'promotions':
+        return 'Promotion Performance';
+      default:
+        return 'Report';
+    }
+  }
+
   void _toast(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 

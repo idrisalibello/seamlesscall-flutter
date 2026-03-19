@@ -353,31 +353,37 @@ class _AdminShellState extends ConsumerState<AdminShell> {
 
       case '/admin/reports/overview':
         return ReportsDashboardScreen(
+          key: const ValueKey('/admin/reports/overview'),
           initialSection: 'overview',
           permissions: permissions,
         );
       case '/admin/reports/operations':
         return ReportsDashboardScreen(
+          key: const ValueKey('/admin/reports/operations'),
           initialSection: 'operations',
           permissions: permissions,
         );
       case '/admin/reports/providers':
         return ReportsDashboardScreen(
+          key: const ValueKey('/admin/reports/providers'),
           initialSection: 'providers',
           permissions: permissions,
         );
       case '/admin/reports/customers':
         return ReportsDashboardScreen(
+          key: const ValueKey('/admin/reports/customers'),
           initialSection: 'customers',
           permissions: permissions,
         );
       case '/admin/reports/finance':
         return ReportsDashboardScreen(
+          key: const ValueKey('/admin/reports/finance'),
           initialSection: 'finance',
           permissions: permissions,
         );
       case '/admin/reports/promotions':
         return ReportsDashboardScreen(
+          key: const ValueKey('/admin/reports/promotions'),
           initialSection: 'promotions',
           permissions: permissions,
         );
