@@ -36,7 +36,7 @@ import 'package:seamlesscall/features/config/promotions_screen.dart';
 import 'package:seamlesscall/features/config/appearance_screen.dart';
 
 // reports
-import 'package:seamlesscall/features/reports/report_center_screen.dart';
+import 'package:seamlesscall/features/reports/reports_dashboard_screen.dart';
 
 // system
 import 'package:seamlesscall/features/system/roles_permissions_screen.dart';
@@ -63,10 +63,7 @@ class _AdminMenuSection {
   final String title;
   final List<_AdminMenuItem> items;
 
-  const _AdminMenuSection({
-    required this.title,
-    required this.items,
-  });
+  const _AdminMenuSection({required this.title, required this.items});
 }
 
 class AdminShell extends ConsumerStatefulWidget {
@@ -224,32 +221,32 @@ class _AdminShellState extends ConsumerState<AdminShell> {
       title: 'Reports',
       items: [
         _AdminMenuItem(
-          label: 'Overview',
+          label: 'Executive Summary',
           route: '/admin/reports/overview',
-          permission: 'view-reports-overview',
+          permission: 'view-reports-dashboard',
         ),
         _AdminMenuItem(
-          label: 'Operations Reports',
+          label: 'Operations Intelligence',
           route: '/admin/reports/operations',
           permission: 'view-operations-reports',
         ),
         _AdminMenuItem(
-          label: 'Provider Reports',
+          label: 'Provider Intelligence',
           route: '/admin/reports/providers',
           permission: 'view-provider-reports',
         ),
         _AdminMenuItem(
-          label: 'Customer Reports',
+          label: 'Customer Intelligence',
           route: '/admin/reports/customers',
           permission: 'view-customer-reports',
         ),
         _AdminMenuItem(
-          label: 'Finance Reports',
+          label: 'Finance Intelligence',
           route: '/admin/reports/finance',
           permission: 'view-finance-reports',
         ),
         _AdminMenuItem(
-          label: 'Promotion Reports',
+          label: 'Promotion Performance',
           route: '/admin/reports/promotions',
           permission: 'view-promotion-reports',
         ),
@@ -301,7 +298,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     return permissions.contains(permission);
   }
 
-  Widget _screenForRoute(String route) {
+  Widget _screenForRoute(String route, Set<String> permissions) {
     switch (route) {
       case '/admin/dashboard':
         return const DashboardScreen();
@@ -355,18 +352,35 @@ class _AdminShellState extends ConsumerState<AdminShell> {
         return const AppearanceScreen();
 
       case '/admin/reports/overview':
-        return const ReportCenterScreen(section: ReportSection.overview);
+        return ReportsDashboardScreen(
+          initialSection: 'overview',
+          permissions: permissions,
+        );
       case '/admin/reports/operations':
-        return const ReportCenterScreen(section: ReportSection.operations);
+        return ReportsDashboardScreen(
+          initialSection: 'operations',
+          permissions: permissions,
+        );
       case '/admin/reports/providers':
-        return const ReportCenterScreen(section: ReportSection.providers);
+        return ReportsDashboardScreen(
+          initialSection: 'providers',
+          permissions: permissions,
+        );
       case '/admin/reports/customers':
-        return const ReportCenterScreen(section: ReportSection.customers);
+        return ReportsDashboardScreen(
+          initialSection: 'customers',
+          permissions: permissions,
+        );
       case '/admin/reports/finance':
-        return const ReportCenterScreen(section: ReportSection.finance);
+        return ReportsDashboardScreen(
+          initialSection: 'finance',
+          permissions: permissions,
+        );
       case '/admin/reports/promotions':
-        return const ReportCenterScreen(section: ReportSection.promotions);
-
+        return ReportsDashboardScreen(
+          initialSection: 'promotions',
+          permissions: permissions,
+        );
       case '/admin/system/create-admin':
         return const CreateAdminUserScreen();
       case '/admin/system/users':
@@ -394,23 +408,27 @@ class _AdminShellState extends ConsumerState<AdminShell> {
           .toList();
 
       if (allowedItems.isNotEmpty) {
-        sections.add(_AdminMenuSection(title: section.title, items: allowedItems));
+        sections.add(
+          _AdminMenuSection(title: section.title, items: allowedItems),
+        );
       }
     }
 
     return sections;
   }
 
-  List<PopupMenuEntry<String>> _mobileMenuItems(List<_AdminMenuSection> sections) {
+  List<PopupMenuEntry<String>> _mobileMenuItems(
+    List<_AdminMenuSection> sections,
+  ) {
     PopupMenuItem<String> item(String label, String route) =>
         PopupMenuItem(value: route, child: Text(label));
 
     PopupMenuDivider divider() => const PopupMenuDivider();
 
     PopupMenuItem<String> header(String label) => PopupMenuItem(
-          enabled: false,
-          child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-        );
+      enabled: false,
+      child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+    );
 
     final entries = <PopupMenuEntry<String>>[];
 
@@ -490,7 +508,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
             )
           : null,
       body: isMobile
-          ? _screenForRoute(effectiveRoute)
+          ? _screenForRoute(effectiveRoute, permissions)
           : Row(
               children: [
                 Container(
@@ -519,16 +537,25 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                         final selected = effectiveRoute == entry.value;
 
                         return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 3,
+                          ),
                           child: ListTile(
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            tileColor: selected ? selectedBg : Colors.transparent,
+                            tileColor: selected
+                                ? selectedBg
+                                : Colors.transparent,
                             selected: selected,
                             selectedColor: accent,
-                            iconColor: selected ? accent : theme.iconTheme.color,
-                            textColor: selected ? accent : theme.textTheme.bodyMedium?.color,
+                            iconColor: selected
+                                ? accent
+                                : theme.iconTheme.color,
+                            textColor: selected
+                                ? accent
+                                : theme.textTheme.bodyMedium?.color,
                             title: entry.child,
                             onTap: () => _navigate(entry.value!),
                           ),
@@ -540,7 +567,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                   ),
                 ),
                 VerticalDivider(width: 1, color: theme.dividerColor),
-                Expanded(child: _screenForRoute(effectiveRoute)),
+                Expanded(child: _screenForRoute(effectiveRoute, permissions)),
               ],
             ),
     );
