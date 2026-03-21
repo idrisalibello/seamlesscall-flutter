@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../data/models/customer_orders_repository.dart';
+
 class JobTrackingScreen extends StatefulWidget {
   final String jobId;
 
@@ -10,185 +12,264 @@ class JobTrackingScreen extends StatefulWidget {
 }
 
 class _JobTrackingScreenState extends State<JobTrackingScreen> {
-  // Replace with real API later.
-  late final _TrackingModel model = _TrackingModel.mock(widget.jobId);
+  final CustomerOrdersRepository _repo = CustomerOrdersRepository();
+
+  bool _loading = true;
+  String? _error;
+  _TrackingModel? _model;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final data = await _repo.getOrderDetails(widget.jobId);
+      final model = _TrackingModel.fromApi(widget.jobId, data);
+
+      if (!mounted) return;
+
+      setState(() {
+        _model = model;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _loading = false;
+        _error = e.toString().replaceFirst('Exception: ', '');
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
+    if (_loading) {
+      return Scaffold(
+        backgroundColor: cs.background,
+        appBar: AppBar(title: const Text('Track Service')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_error != null) {
+      return Scaffold(
+        backgroundColor: cs.background,
+        appBar: AppBar(title: const Text('Track Service')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline_rounded, size: 42),
+                const SizedBox(height: 12),
+                Text(
+                  _error!,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 14),
+                ElevatedButton(
+                  onPressed: _load,
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final model = _model!;
+
     return Scaffold(
       backgroundColor: cs.background,
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-                child: _TopBar(
-                  title: "Track Service",
-                  subtitle: "Job ${model.jobId} • ${model.serviceName}",
-                  onBack: () => Navigator.pop(context),
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                  child: _TopBar(
+                    title: "Track Service",
+                    subtitle: "Job ${model.jobId} • ${model.serviceName}",
+                    onBack: () => Navigator.pop(context),
+                  ),
                 ),
               ),
-            ),
 
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
-                child: _StatusHero(
-                  statusTitle: model.statusTitle,
-                  statusHint: model.statusHint,
-                  etaText: model.etaText,
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+                  child: _StatusHero(
+                    statusTitle: model.statusTitle,
+                    statusHint: model.statusHint,
+                    etaText: model.etaText,
+                  ),
                 ),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 2, 16, 10),
-                child: _QuoteProformaCard(
-                  quote: model.quote, // add this field to model (below)
-                  onApproveAndPay: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Approve & Pay: hook to gateway later"),
-                      ),
-                    );
-                  },
-                  onRequestChange: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          "Request change: hook to chat/support later",
+
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 2, 16, 10),
+                  child: _QuoteProformaCard(
+                    quote: model.quote,
+                    onApproveAndPay: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            "Approve & Pay will be wired to the payment flow next.",
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 2, 16, 10),
-                child: _MiniMapPreview(
-                  pickupLabel: model.pickupLabel,
-                  destinationLabel: model.destinationLabel,
-                  distanceText: model.distanceText,
-                  etaText: model.etaText,
-                  onOpenMap: () {
-                    // TODO: open live map / google maps later
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Map: hook to live map later"),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 2, 16, 10),
-                child: _TechnicianCard(
-                  techName: model.techName,
-                  techRating: model.techRating,
-                  techJobs: model.techJobs,
-                  onChat: () {
-                    // TODO: route to technician chat
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Chat: hook to chat screen"),
-                      ),
-                    );
-                  },
-                  onCall: () {
-                    // TODO: implement call intent
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Call: hook to call intent"),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
-                child: Text(
-                  "Progress",
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    color: cs.onBackground,
+                      );
+                    },
+                    onRequestChange: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            "Request change will be wired to chat/support next.",
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
-            ),
 
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              sliver: SliverList.separated(
-                itemCount: model.steps.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemBuilder: (context, i) {
-                  final step = model.steps[i];
-                  return _TrackingStepTile(step: step);
-                },
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
-                child: Text(
-                  "Latest updates",
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    color: cs.onBackground,
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 2, 16, 10),
+                  child: _MiniMapPreview(
+                    pickupLabel: model.pickupLabel,
+                    destinationLabel: model.destinationLabel,
+                    distanceText: model.distanceText,
+                    etaText: model.etaText,
+                    onOpenMap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Live map hookup comes next."),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
-            ),
 
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              sliver: SliverList.separated(
-                itemCount: model.updates.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemBuilder: (context, i) =>
-                    _UpdateLogTile(update: model.updates[i]),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 2, 16, 10),
+                  child: _TechnicianCard(
+                    techName: model.techName,
+                    techRating: model.techRating,
+                    techJobs: model.techJobs,
+                    onChat: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Technician chat comes next."),
+                        ),
+                      );
+                    },
+                    onCall: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Technician calling comes next."),
+                        ),
+                      );
+                    },
+                  ),
+                ),
               ),
-            ),
 
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
-                child: _ActionPanel(
-                  primaryText: model.primaryActionText,
-                  secondaryText: "Report an issue",
-                  onPrimary: () {
-                    // TODO: route based on status (e.g. reschedule, confirm arrival, rate job)
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text("Primary: ${model.primaryActionText}"),
-                      ),
-                    );
-                  },
-                  onSecondary: () {
-                    // TODO: dispute / support
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Report: hook to support/dispute"),
-                      ),
-                    );
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+                  child: Text(
+                    "Progress",
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: cs.onBackground,
+                    ),
+                  ),
+                ),
+              ),
+
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                sliver: SliverList.separated(
+                  itemCount: model.steps.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, i) {
+                    final step = model.steps[i];
+                    return _TrackingStepTile(step: step);
                   },
                 ),
               ),
-            ),
-          ],
+
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+                  child: Text(
+                    "Latest updates",
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: cs.onBackground,
+                    ),
+                  ),
+                ),
+              ),
+
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                sliver: SliverList.separated(
+                  itemCount: model.updates.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, i) =>
+                      _UpdateLogTile(update: model.updates[i]),
+                ),
+              ),
+
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+                  child: _ActionPanel(
+                    primaryText: model.primaryActionText,
+                    secondaryText: "Report an issue",
+                    onPrimary: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(model.primaryActionText),
+                        ),
+                      );
+                    },
+                    onSecondary: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            "Support/dispute flow will be wired next.",
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -311,7 +392,6 @@ class _QuoteProformaCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header row
           Row(
             children: [
               Container(
@@ -365,31 +445,22 @@ class _QuoteProformaCard extends StatelessWidget {
               ),
             ],
           ),
-
           const SizedBox(height: 12),
-
-          // Lines
           _QuoteLine(
             label: "Inspection fee",
             value: quote.inspectionFeeText,
             strong: true,
           ),
           const SizedBox(height: 8),
-
           ...quote.lines.map(
             (l) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: _QuoteLine(label: l.label, value: l.value),
             ),
           ),
-
           const Divider(height: 20),
-
           _QuoteLine(label: "Total", value: quote.totalText, strong: true),
-
           const SizedBox(height: 12),
-
-          // Rules note (Nigeria trust)
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -406,10 +477,7 @@ class _QuoteProformaCard extends StatelessWidget {
               ),
             ),
           ),
-
           const SizedBox(height: 12),
-
-          // Actions
           Row(
             children: [
               Expanded(
@@ -631,7 +699,6 @@ class _MiniMapPreview extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // "Map" area (placeholder)
           ClipRRect(
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(18),
@@ -652,7 +719,6 @@ class _MiniMapPreview extends StatelessWidget {
               ),
               child: Stack(
                 children: [
-                  // Decorative "roads"
                   Positioned.fill(
                     child: Opacity(
                       opacity: 0.25,
@@ -661,8 +727,6 @@ class _MiniMapPreview extends StatelessWidget {
                       ),
                     ),
                   ),
-
-                  // Pins + path hint
                   Positioned(
                     left: 18,
                     top: 22,
@@ -676,7 +740,6 @@ class _MiniMapPreview extends StatelessWidget {
                       icon: Icons.engineering_rounded,
                     ),
                   ),
-
                   Positioned(
                     left: 16,
                     right: 16,
@@ -725,8 +788,6 @@ class _MiniMapPreview extends StatelessWidget {
               ),
             ),
           ),
-
-          // Labels
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
             child: Column(
@@ -895,7 +956,6 @@ class _RoadPainter extends CustomPainter {
 
     canvas.drawPath(path, p);
 
-    // Dashed center line (simple manual dashes)
     final metrics = path.computeMetrics().toList();
     for (final m in metrics) {
       double dist = 0;
@@ -1028,8 +1088,8 @@ class _TrackingStepTile extends StatelessWidget {
     final Color dotColor = step.state == _StepState.done
         ? cs.primary
         : step.state == _StepState.active
-        ? cs.primary
-        : cs.onSurface.withOpacity(0.25);
+            ? cs.primary
+            : cs.onSurface.withOpacity(0.25);
 
     final Color lineColor = step.state == _StepState.upcoming
         ? cs.onSurface.withOpacity(0.12)
@@ -1038,8 +1098,8 @@ class _TrackingStepTile extends StatelessWidget {
     final IconData icon = step.state == _StepState.done
         ? Icons.check_rounded
         : step.state == _StepState.active
-        ? Icons.circle
-        : Icons.circle_outlined;
+            ? Icons.circle
+            : Icons.circle_outlined;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
@@ -1051,7 +1111,6 @@ class _TrackingStepTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Timeline column
           SizedBox(
             width: 34,
             child: Column(
@@ -1074,8 +1133,6 @@ class _TrackingStepTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-
-          // Text
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1221,7 +1278,6 @@ class _TrackingUpdate {
   });
 }
 
-// ✅ You referenced this above, so it must exist.
 class _UpdateLogTile extends StatelessWidget {
   final _TrackingUpdate update;
 
@@ -1235,14 +1291,14 @@ class _UpdateLogTile extends StatelessWidget {
     final icon = update.type == _UpdateType.info
         ? Icons.info_outline_rounded
         : update.type == _UpdateType.success
-        ? Icons.check_circle_outline_rounded
-        : Icons.warning_amber_rounded;
+            ? Icons.check_circle_outline_rounded
+            : Icons.warning_amber_rounded;
 
     final iconColor = update.type == _UpdateType.info
         ? cs.primary
         : update.type == _UpdateType.success
-        ? Colors.green
-        : Colors.orange;
+            ? Colors.green
+            : Colors.orange;
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -1318,7 +1374,6 @@ class _TrackingModel {
   final double techRating;
   final int techJobs;
 
-  // 🔴 NEW (money + routing context)
   final _QuoteProforma quote;
   final String pickupLabel;
   final String destinationLabel;
@@ -1337,116 +1392,247 @@ class _TrackingModel {
     required this.techName,
     required this.techRating,
     required this.techJobs,
-
-    // 🔴 ADD THESE
     required this.quote,
     required this.pickupLabel,
     required this.destinationLabel,
     required this.distanceText,
     required this.updates,
-
     required this.primaryActionText,
     required this.steps,
   });
 
-  static _TrackingModel mock(String jobId) {
-    final _QuoteProforma quote;
-    final String pickupLabel;
-    final String destinationLabel;
-    final String distanceText;
-    final List<_TrackingUpdate> updates;
+  factory _TrackingModel.fromApi(String jobId, Map<String, dynamic> data) {
+    final job = Map<String, dynamic>.from(data['job'] ?? const {});
+    final service = Map<String, dynamic>.from(data['service'] ?? const {});
+    final provider = data['provider'] is Map<String, dynamic>
+        ? Map<String, dynamic>.from(data['provider'])
+        : <String, dynamic>{};
+    final meta = Map<String, dynamic>.from(data['meta'] ?? const {});
+    final summary = Map<String, dynamic>.from(data['status_summary'] ?? const {});
+    final timeline = (data['timeline'] as List<dynamic>? ?? const [])
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+
+    final status = (job['status'] ?? 'pending').toString().toLowerCase();
+    final address = (meta['address'] ?? 'Customer address').toString();
+    final scheduledTime = (job['scheduled_time'] ?? '').toString();
+
+    final steps = timeline.map(_stepFromApi).toList();
+    final updates = _updatesFromApi(job, provider, timeline);
 
     return _TrackingModel(
-      jobId: jobId,
-      serviceName: "AC Repair",
+      jobId: 'SC-${job['id'] ?? jobId}',
+      serviceName: (job['title'] ?? service['name'] ?? 'Service Request')
+          .toString(),
+      statusTitle: (summary['title'] ?? 'Tracking').toString(),
+      statusHint: (summary['hint'] ?? 'Status information is available.')
+          .toString(),
+      etaText: _etaFromStatus(status, scheduledTime),
+      techName: (provider['name'] ?? 'Technician not assigned').toString(),
+      techRating: provider.isEmpty ? 0.0 : 4.8,
+      techJobs: provider.isEmpty ? 0 : 0,
+      quote: _quoteFromApi(status),
+      pickupLabel: address,
+      destinationLabel: provider.isEmpty
+          ? 'Technician will appear here after assignment'
+          : 'Technician route to your location',
+      distanceText: provider.isEmpty ? '-- km' : 'En route',
+      updates: updates,
+      primaryActionText:
+          (data['primary_action_text'] ?? _primaryActionFromStatus(status))
+              .toString(),
+      steps: steps.isEmpty ? _fallbackSteps(status) : steps,
+    );
+  }
 
-      statusTitle: "Technician en route",
-      statusHint: "Your technician is on the way. Keep your phone available.",
-      etaText: "ETA 18 min",
+  static _TrackingStep _stepFromApi(Map<String, dynamic> step) {
+    final completed = step['completed'] == true;
+    final active = step['active'] == true;
 
-      techName: "Khadijah Ismail",
-      techRating: 4.8,
-      techJobs: 127,
+    return _TrackingStep(
+      title: (step['title'] ?? '').toString(),
+      subtitle: (step['subtitle'] ?? '').toString(),
+      timeText: _formatTime(step['time']),
+      state: completed
+          ? _StepState.done
+          : active
+              ? _StepState.active
+              : _StepState.upcoming,
+    );
+  }
 
-      // 🔴 QUOTE / PROFORMA
-      quote: const _QuoteProforma(
-        state: _QuoteState.ready,
-        bandText: "₦8,000 – ₦12,000",
-        inspectionFeeText: "₦2,000",
-        lines: [
-          _QuoteLineItem(label: "Base service", value: "₦8,000"),
-          _QuoteLineItem(label: "Extra unit (1)", value: "₦2,000"),
-          _QuoteLineItem(label: "Emergency surcharge", value: "₦1,000"),
-          _QuoteLineItem(label: "Materials", value: "Excluded"),
-        ],
-        totalText: "₦11,000",
-      ),
+  static List<_TrackingUpdate> _updatesFromApi(
+    Map<String, dynamic> job,
+    Map<String, dynamic> provider,
+    List<Map<String, dynamic>> timeline,
+  ) {
+    final updates = <_TrackingUpdate>[];
 
-      // 🔴 MAP CONTEXT
-      pickupLabel: "Your address (Customer location)",
-      destinationLabel: "Technician route to you",
-      distanceText: "6.2 km",
+    for (final step in timeline) {
+      final completed = step['completed'] == true;
+      final active = step['active'] == true;
 
-      // 🔴 UPDATE LOG
-      updates: const [
+      if (!completed && !active) continue;
+
+      updates.add(
         _TrackingUpdate(
-          timeText: "09:10",
-          title: "Request received",
-          detail: "We received your request and started matching.",
-          type: _UpdateType.info,
+          timeText: _formatTime(step['time']),
+          title: (step['title'] ?? '').toString(),
+          detail: (step['subtitle'] ?? '').toString(),
+          type: completed ? _UpdateType.success : _UpdateType.info,
         ),
+      );
+    }
+
+    if (provider.isNotEmpty) {
+      updates.insert(
+        0,
         _TrackingUpdate(
-          timeText: "09:13",
-          title: "Technician assigned",
-          detail: "Khadijah accepted the job and is preparing to move.",
+          timeText: '',
+          title: 'Technician assigned',
+          detail:
+              '${provider['name'] ?? 'A technician'} has been assigned to your request.',
           type: _UpdateType.success,
         ),
+      );
+    }
+
+    if (updates.isEmpty) {
+      updates.add(
         _TrackingUpdate(
-          timeText: "09:20",
-          title: "En route",
-          detail: "Technician is currently on the way to your location.",
+          timeText: _formatTime(job['created_at']),
+          title: 'Request received',
+          detail: 'We received your request and it is awaiting the next action.',
           type: _UpdateType.info,
         ),
-      ],
+      );
+    }
 
-      primaryActionText: "Share Location",
+    return updates;
+  }
 
-      steps: const [
-        _TrackingStep(
-          title: "Request sent",
-          subtitle: "We received your request.",
-          timeText: "09:10",
-          state: _StepState.done,
-        ),
-        _TrackingStep(
-          title: "Technician matched",
-          subtitle: "A verified technician accepted your job.",
-          timeText: "09:13",
-          state: _StepState.done,
-        ),
-        _TrackingStep(
-          title: "Technician en route",
-          subtitle: "Technician is coming to your location.",
-          timeText: "09:20",
-          state: _StepState.active,
-        ),
-        _TrackingStep(
-          title: "Arrived",
-          subtitle: "Confirm arrival when the technician gets to you.",
-          state: _StepState.upcoming,
-        ),
-        _TrackingStep(
-          title: "Work in progress",
-          subtitle: "Technician starts the job and updates status.",
-          state: _StepState.upcoming,
-        ),
-        _TrackingStep(
-          title: "Completed",
-          subtitle: "Job completed. Payment and receipt available.",
-          state: _StepState.upcoming,
-        ),
-      ],
-    );
+  static _QuoteProforma _quoteFromApi(String status) {
+    switch (status) {
+      case 'completed':
+        return const _QuoteProforma(
+          state: _QuoteState.approved,
+          bandText: 'Confirmed',
+          inspectionFeeText: 'Paid / processed',
+          lines: [
+            _QuoteLineItem(label: 'Job status', value: 'Completed'),
+          ],
+          totalText: 'Finalized',
+        );
+      case 'active':
+        return const _QuoteProforma(
+          state: _QuoteState.ready,
+          bandText: 'Awaiting quote approval',
+          inspectionFeeText: 'Inspection underway',
+          lines: [
+            _QuoteLineItem(label: 'Status', value: 'Technician assigned'),
+          ],
+          totalText: 'Quote pending',
+        );
+      case 'scheduled':
+        return const _QuoteProforma(
+          state: _QuoteState.pending,
+          bandText: 'To be assessed',
+          inspectionFeeText: 'Pending',
+          lines: [
+            _QuoteLineItem(label: 'Status', value: 'Scheduled'),
+          ],
+          totalText: 'Pending',
+        );
+      case 'cancelled':
+        return const _QuoteProforma(
+          state: _QuoteState.rejected,
+          bandText: 'Cancelled',
+          inspectionFeeText: 'Not applicable',
+          lines: [
+            _QuoteLineItem(label: 'Status', value: 'Cancelled'),
+          ],
+          totalText: 'Cancelled',
+        );
+      case 'pending':
+      default:
+        return const _QuoteProforma(
+          state: _QuoteState.pending,
+          bandText: 'To be assessed after inspection',
+          inspectionFeeText: 'Pending',
+          lines: [
+            _QuoteLineItem(label: 'Status', value: 'Awaiting review'),
+          ],
+          totalText: 'Pending',
+        );
+    }
+  }
+
+  static String _etaFromStatus(String status, String scheduledTime) {
+    switch (status) {
+      case 'completed':
+        return 'Done';
+      case 'cancelled':
+        return 'Stopped';
+      case 'active':
+        return 'Live';
+      case 'scheduled':
+        return scheduledTime.isEmpty ? 'Scheduled' : 'Scheduled';
+      default:
+        return 'Pending';
+    }
+  }
+
+  static String _primaryActionFromStatus(String status) {
+    switch (status) {
+      case 'completed':
+        return 'View completion';
+      case 'cancelled':
+        return 'View details';
+      case 'active':
+        return 'View technician status';
+      case 'scheduled':
+        return 'View schedule';
+      default:
+        return 'Awaiting inspection';
+    }
+  }
+
+  static List<_TrackingStep> _fallbackSteps(String status) {
+    if (status == 'completed') {
+      return const [
+        _TrackingStep(title: 'Request sent', state: _StepState.done),
+        _TrackingStep(title: 'Technician matched', state: _StepState.done),
+        _TrackingStep(title: 'Work in progress', state: _StepState.done),
+        _TrackingStep(title: 'Completed', state: _StepState.done),
+      ];
+    }
+
+    if (status == 'active') {
+      return const [
+        _TrackingStep(title: 'Request sent', state: _StepState.done),
+        _TrackingStep(title: 'Technician matched', state: _StepState.done),
+        _TrackingStep(title: 'Technician en route', state: _StepState.active),
+        _TrackingStep(title: 'Completed', state: _StepState.upcoming),
+      ];
+    }
+
+    return const [
+      _TrackingStep(title: 'Request sent', state: _StepState.done),
+      _TrackingStep(title: 'Inspection / review pending', state: _StepState.active),
+      _TrackingStep(title: 'Technician assigned', state: _StepState.upcoming),
+      _TrackingStep(title: 'Completed', state: _StepState.upcoming),
+    ];
+  }
+
+  static String _formatTime(dynamic raw) {
+    final value = (raw ?? '').toString().trim();
+    if (value.isEmpty) return '';
+
+    final parsed = DateTime.tryParse(value);
+    if (parsed == null) return value;
+
+    final two = (int v) => v.toString().padLeft(2, '0');
+    return '${two(parsed.hour)}:${two(parsed.minute)}';
   }
 }
 
@@ -1460,10 +1646,10 @@ class _QuoteLineItem {
 
 class _QuoteProforma {
   final _QuoteState state;
-  final String bandText; // e.g. ₦8,000–₦12,000
-  final String inspectionFeeText; // e.g. ₦2,000
+  final String bandText;
+  final String inspectionFeeText;
   final List<_QuoteLineItem> lines;
-  final String totalText; // e.g. ₦11,000
+  final String totalText;
 
   const _QuoteProforma({
     required this.state,

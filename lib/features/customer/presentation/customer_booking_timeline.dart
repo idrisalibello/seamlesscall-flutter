@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../common/widgets/main_layout.dart';
 import 'booking_models.dart';
+import 'customer_jobs_screen.dart';
 
 class BookingTimelineScreen extends StatefulWidget {
   final BookingDraft draft;
@@ -132,12 +133,12 @@ class _BookingTimelineScreenState extends State<BookingTimelineScreen>
                   onSecondary: () =>
                       Navigator.popUntil(context, (r) => r.isFirst),
                   onPrimary: () {
-                    // Phase 2: we don’t have real Orders wired yet in this flow.
-                    // Keep it non-destructive: go back for now.
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Orders wiring comes next (Phase 3)."),
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const CustomerJobsScreen(),
                       ),
+                      (route) => route.isFirst,
                     );
                   },
                 ),
