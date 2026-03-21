@@ -84,4 +84,39 @@ class CustomerRepository {
       throw Exception('An unexpected error occurred: $e');
     }
   }
+
+  Future<Map<String, dynamic>> createBooking({
+    required int serviceId,
+    required String serviceName,
+    required String bookingType,
+    DateTime? scheduledAt,
+    required String address,
+    required String note,
+  }) async {
+    try {
+      final res = await _dioClient.dio.post(
+        '/api/v1/customer/bookings',
+        data: {
+          'service_id': serviceId,
+          'service_name': serviceName,
+          'booking_type': bookingType,
+          'scheduled_at': scheduledAt?.toIso8601String(),
+          'address': address,
+          'note': note,
+        },
+      );
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        return Map<String, dynamic>.from(res.data['data'] ?? const {});
+      }
+
+      throw Exception('Failed to create booking. Status: ${res.statusCode}');
+    } on DioException catch (e) {
+      throw Exception(
+        'Failed to create booking: ${e.response?.data['messages'] ?? e.message}',
+      );
+    } catch (e) {
+      throw Exception('An unexpected error occurred: $e');
+    }
+  }
 }

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../common/widgets/main_layout.dart';
+import '../data/models/customer_repository.dart';
 import 'booking_models.dart';
 import 'customer_booking_timeline.dart';
 
@@ -16,10 +17,65 @@ class BookingSummaryScreen extends StatefulWidget {
 
 class _BookingSummaryScreenState extends State<BookingSummaryScreen>
     with SingleTickerProviderStateMixin {
+  final CustomerRepository _customerRepository = CustomerRepository();
+  bool _submitting = false;
+
   late final AnimationController _bg = AnimationController(
     vsync: this,
     duration: const Duration(seconds: 6),
   )..repeat(reverse: true);
+
+  Future<void> _submitBooking(BookingDraft draft) async {
+    if (_submitting) return;
+
+    setState(() => _submitting = true);
+
+    try {
+      int? serviceId = draft.serviceId;
+
+      if (serviceId == null) {
+        final services = await _customerRepository.getAllServices();
+        for (final service in services) {
+          if (service.name.trim().toLowerCase() ==
+              draft.serviceName.trim().toLowerCase()) {
+            serviceId = service.id;
+            break;
+          }
+        }
+      }
+
+      if (serviceId == null) {
+        throw Exception(
+          'Unable to resolve the selected service. Please reopen the service and try again.',
+        );
+      }
+
+      await _customerRepository.createBooking(
+        serviceId: serviceId,
+        serviceName: draft.serviceName,
+        bookingType: draft.type == BookingType.asap ? 'asap' : 'scheduled',
+        scheduledAt: draft.scheduledAt,
+        address: draft.address.trim(),
+        note: draft.note.trim(),
+      );
+
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => BookingTimelineScreen(draft: draft)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _submitting = false);
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -184,18 +240,14 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen>
               child: SafeArea(
                 top: false,
                 child: _BottomBar(
-                  primaryText: "Confirm request",
+                  primaryText: _submitting
+                      ? "Submitting..."
+                      : "Confirm request",
                   secondaryText: "Back",
-                  onSecondary: () => Navigator.pop(context),
-                  onPrimary: () {
-                    // Phase 2: Still UI-only. Next screen shows the timeline state.
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => BookingTimelineScreen(draft: d),
-                      ),
-                    );
-                  },
+                  onSecondary: _submitting
+                      ? () {}
+                      : () => Navigator.pop(context),
+                  onPrimary: _submitting ? () {} : () => _submitBooking(d),
                 ),
               ),
             ),
@@ -249,7 +301,9 @@ class _TopBar extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: theme.textTheme.titleLarge?.copyWith(
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w900,
                   color: cs.onBackground,
                 ),
@@ -260,22 +314,24 @@ class _TopBar extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: cs.onBackground.withOpacity(0.65),
+                  color: cs.onBackground.withOpacity(0.68),
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ],
           ),
         ),
+        const SizedBox(width: 10),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
           decoration: BoxDecoration(
-            color: cs.primaryContainer.withOpacity(0.70),
+            color: cs.primaryContainer.withOpacity(0.65),
             borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: cs.primary.withOpacity(0.18)),
           ),
           child: Text(
             stepText,
-            style: theme.textTheme.bodySmall?.copyWith(
+            style: theme.textTheme.labelMedium?.copyWith(
               fontWeight: FontWeight.w900,
               color: cs.primary,
             ),
@@ -303,55 +359,61 @@ class _HeroCard extends StatelessWidget {
     final cs = theme.colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: cs.surface.withOpacity(0.92),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: cs.outlineVariant.withOpacity(0.6)),
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [cs.primary.withOpacity(0.15), cs.surface.withOpacity(0.96)],
+        ),
+        border: Border.all(color: cs.primary.withOpacity(0.15)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: cs.primary.withOpacity(0.06),
             blurRadius: 18,
-            offset: const Offset(0, 12),
+            offset: const Offset(0, 10),
           ),
         ],
       ),
-      child: Row(
-        children: [
-          Container(
-            height: 46,
-            width: 46,
-            decoration: BoxDecoration(
-              color: cs.primaryContainer.withOpacity(0.70),
-              borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+        child: Row(
+          children: [
+            Container(
+              height: 54,
+              width: 54,
+              decoration: BoxDecoration(
+                color: cs.primary.withOpacity(0.14),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Icon(icon, color: cs.primary, size: 28),
             ),
-            child: Icon(icon, color: cs.primary),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    color: cs.onSurface,
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: cs.onSurface,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: cs.onSurface.withOpacity(0.68),
-                    height: 1.2,
+                  const SizedBox(height: 6),
+                  Text(
+                    subtitle,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      height: 1.3,
+                      fontWeight: FontWeight.w600,
+                      color: cs.onSurface.withOpacity(0.72),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
