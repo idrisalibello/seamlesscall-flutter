@@ -53,6 +53,8 @@ class _CustomerJobsScreenState extends State<CustomerJobsScreen>
     }
   }
 
+  
+
   @override
   void dispose() {
     _bg.dispose();

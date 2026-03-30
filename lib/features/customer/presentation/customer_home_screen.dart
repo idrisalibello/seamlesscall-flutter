@@ -1,19 +1,52 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:seamlesscall/features/auth/presentation/auth_providers.dart';
+import 'package:seamlesscall/features/customer/data/models/customer_orders_repository.dart';
+import 'package:seamlesscall/features/customer/data/models/customer_repository.dart';
+import 'package:seamlesscall/features/customer/data/models/order_model.dart';
+import 'package:seamlesscall/features/customer/data/models/service_model.dart';
 import 'package:seamlesscall/features/customer/presentation/apply_as_provider_screen.dart';
 import 'package:seamlesscall/features/customer/presentation/customer_chat_screen.dart';
+import 'package:seamlesscall/features/customer/presentation/customer_service_details.dart';
 import 'package:seamlesscall/features/customer/presentation/customer_services_list.dart';
 import 'package:seamlesscall/features/customer/presentation/job_tracking_screen.dart';
 import 'package:seamlesscall/features/customer/presentation/widgets/customer_promotions_section.dart';
 
-class CustomerHomeScreen extends StatefulWidget {
+// ─── Providers ────────────────────────────────────────────────────────────────
+
+/// Fetches the latest non-terminal active order so the hero CTA can say "Track Job".
+final _activeOrderProvider =
+    FutureProvider.autoDispose<CustomerOrder?>((ref) async {
+  final orders = await CustomerOrdersRepository().getOrders();
+  try {
+    return orders.firstWhere((o) => o.stage.isActive);
+  } catch (_) {
+    return null;
+  }
+});
+
+/// Fetches first category's services for the "Popular services" row.
+final _popularServicesProvider =
+    FutureProvider.autoDispose<List<Service>>((ref) async {
+  final repo = CustomerRepository();
+  final categories = await repo.getCategories();
+  if (categories.isEmpty) return [];
+  final services = await repo.getServicesByCategory(categories.first.id);
+  return services.take(4).toList();
+});
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
+
+class CustomerHomeScreen extends ConsumerStatefulWidget {
   const CustomerHomeScreen({super.key});
 
   @override
-  State<CustomerHomeScreen> createState() => _CustomerHomeScreenState();
+  ConsumerState<CustomerHomeScreen> createState() =>
+      _CustomerHomeScreenState();
 }
 
-class _CustomerHomeScreenState extends State<CustomerHomeScreen>
+class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _bg = AnimationController(
     vsync: this,
@@ -26,243 +59,352 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
     super.dispose();
   }
 
+  String get _greeting {
+    final h = DateTime.now().hour;
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  Future<void> _refresh() async {
+    ref.invalidate(_activeOrderProvider);
+    ref.invalidate(_popularServicesProvider);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
-    // Fake: replace with your real state later
-    final bool hasOngoingJob = true;
-    final String ongoingJobId = "SC-1042";
+    // Real user name from auth state
+    final user = ref.watch(authProvider).user;
+    final firstName = (user?.name ?? '').split(' ').first;
+    final greeting =
+        firstName.isNotEmpty ? '$_greeting, $firstName 👋' : '$_greeting 👋';
+
+    // Live active order
+    final activeOrderAsync = ref.watch(_activeOrderProvider);
 
     return Scaffold(
       body: Stack(
         children: [
-          // ✅ Background: gradient + subtle animated blobs (adds “depth” + breaks homogeneity)
+          // Animated background blobs
           Positioned.fill(
             child: AnimatedBuilder(
               animation: _bg,
-              builder: (context, _) {
-                final t = _bg.value; // 0..1
-                return CustomPaint(
-                  painter: _HomeBgPainter(
-                    primary: cs.primary,
-                    surface: cs.surface,
-                    t: t,
-                  ),
-                );
-              },
+              builder: (_, __) => CustomPaint(
+                painter: _HomeBgPainter(
+                  primary: cs.primary,
+                  surface: cs.surface,
+                  t: _bg.value,
+                ),
+              ),
             ),
           ),
 
           SafeArea(
-            child: CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                    child: _AnimatedIn(
-                      delayMs: 40,
-                      child: _HomeTopBar(
-                        title: "Hello 👋",
-                        subtitle: "What do you need fixed today?",
+            child: RefreshIndicator(
+              onRefresh: _refresh,
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+
+                  // ── Top bar ─────────────────────────────────────────────
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                      child: _AnimatedIn(
+                        delayMs: 40,
+                        child: _HomeTopBar(greeting: greeting),
                       ),
                     ),
                   ),
-                ),
 
-                // ✅ Hero: more white + image + glow + motion
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
-                    child: _AnimatedIn(
-                      delayMs: 120,
-                      child: _HeroHeader(
-                        title: "Fast. Verified. Nearby.",
-                        subtitle:
-                            "Track jobs like deliveries and chat with technicians.",
-                        // Use local asset (avoid web 404 issues)
-                        imageAsset:
-                            "assets/images/customer/photo-1621905252507-b35492cc74b4.png",
-                        primaryCtaText: hasOngoingJob
-                            ? "Track Job"
-                            : "Book a Service",
-                        secondaryCtaText: "View Services",
-                        onPrimaryTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  const JobTrackingScreen(jobId: '13'),
-                            ),
-                          );
-                        },
-                        onSecondaryTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const ServicesListScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-
-                // ✅ Quick actions (more white separation + micro motion)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
-                    child: _AnimatedIn(
-                      delayMs: 180,
-                      child: Text(
-                        "Other actions",
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          color: cs.onBackground,
+                  // ── Hero card (live active job or default) ───────────────
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+                      child: _AnimatedIn(
+                        delayMs: 120,
+                        child: activeOrderAsync.when(
+                          loading: () => _HeroHeader(
+                            hasActiveJob: false,
+                            activeOrder: null,
+                            onPrimaryTap: _goToServices,
+                            onSecondaryTap: _goToServices,
+                          ),
+                          error: (_, __) => _HeroHeader(
+                            hasActiveJob: false,
+                            activeOrder: null,
+                            onPrimaryTap: _goToServices,
+                            onSecondaryTap: _goToServices,
+                          ),
+                          data: (order) => _HeroHeader(
+                            hasActiveJob: order != null,
+                            activeOrder: order,
+                            onPrimaryTap: order != null
+                                ? () => _goToTrack(order.jobId)
+                                : _goToServices,
+                            onSecondaryTap: _goToServices,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
 
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
-                    child: _AnimatedIn(
-                      delayMs: 160,
-                      child: Text(
-                        "Special promotions",
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          color: cs.onBackground,
+                  // ── "Other actions" heading ──────────────────────────────
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+                      child: _AnimatedIn(
+                        delayMs: 180,
+                        child: Text(
+                          'Other actions',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            color: cs.onSurface,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
 
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                    child: _AnimatedIn(
-                      delayMs: 200,
-                      child: const CustomerPromotionsSection(),
-                    ),
-                  ),
-                ),
-
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _AnimatedIn(
-                            delayMs: 240,
-                            child: _Pressable(
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const ApplyAsProviderScreen(),
+                  // ── Action tiles (directly under their heading) ──────────
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _AnimatedIn(
+                              delayMs: 220,
+                              child: _Pressable(
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const ApplyAsProviderScreen(),
+                                  ),
                                 ),
-                              ),
-                              child: _ActionTile(
-                                icon: Icons.local_shipping_rounded,
-                                title: "Become a Provider",
-                                subtitle: "Render Professional Services",
+                                child: const _ActionTile(
+                                  icon: Icons.local_shipping_rounded,
+                                  title: 'Become a Provider',
+                                  subtitle: 'Render professional services',
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _AnimatedIn(
-                            delayMs: 300,
-                            child: _Pressable(
-                              onTap: () {
-                                Navigator.push(
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _AnimatedIn(
+                              delayMs: 270,
+                              child: _Pressable(
+                                onTap: () => Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (_) => const ChatShell(),
                                   ),
-                                );
-                              },
-                              child: _ActionTile(
-                                icon: Icons.chat_bubble_outline_rounded,
-                                title: "Chat",
-                                subtitle: "Support & technicians",
+                                ),
+                                child: const _ActionTile(
+                                  icon: Icons.chat_bubble_outline_rounded,
+                                  title: 'Chat',
+                                  subtitle: 'Support & technicians',
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // ✅ Popular services
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
-                    child: _AnimatedIn(
-                      delayMs: 340,
-                      child: Text(
-                        "Popular services",
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          color: cs.onBackground,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 22),
-                    child: _AnimatedIn(
-                      delayMs: 420,
-                      child: _PopularServicesRow(
-                        items: const [
-                          _MiniService(
-                            icon: Icons.ac_unit_rounded,
-                            label: "AC Repair",
-                          ),
-                          _MiniService(
-                            icon: Icons.plumbing_rounded,
-                            label: "Plumbing",
-                          ),
-                          _MiniService(
-                            icon: Icons.electrical_services_rounded,
-                            label: "Electrical",
-                          ),
-                          _MiniService(
-                            icon: Icons.cleaning_services_rounded,
-                            label: "Cleaning",
                           ),
                         ],
                       ),
                     ),
                   ),
-                ),
-              ],
+
+                  // ── "Special promotions" heading ─────────────────────────
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+                      child: _AnimatedIn(
+                        delayMs: 300,
+                        child: Text(
+                          'Special promotions',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            color: cs.onSurface,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // ── Promotions carousel ──────────────────────────────────
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                      child: _AnimatedIn(
+                        delayMs: 340,
+                        child: const CustomerPromotionsSection(),
+                      ),
+                    ),
+                  ),
+
+                  // ── "Popular services" heading ───────────────────────────
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+                      child: _AnimatedIn(
+                        delayMs: 380,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Popular services',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                  color: cs.onSurface,
+                                ),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: _goToServices,
+                              child: Text(
+                                'See all',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                  color: cs.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // ── Popular services (live from API, tappable) ───────────
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
+                      child: _AnimatedIn(
+                        delayMs: 420,
+                        child: _PopularServicesSection(
+                          onServiceTap: _goToServiceDetail,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
       ),
     );
   }
+
+  // ── Navigation helpers ────────────────────────────────────────────────────
+
+  void _goToServices() => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const ServicesListScreen()),
+      );
+
+  void _goToTrack(String jobId) => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => JobTrackingScreen(jobId: jobId)),
+      );
+
+  void _goToServiceDetail(Service service) => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ServiceDetailsScreen(
+            serviceName: service.name,
+            serviceDescription: service.description,
+          ),
+        ),
+      );
 }
 
-/* ---------------- Components ---------------- */
+// ─── _PopularServicesSection ──────────────────────────────────────────────────
+
+class _PopularServicesSection extends ConsumerWidget {
+  final void Function(Service) onServiceTap;
+  const _PopularServicesSection({required this.onServiceTap});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final async = ref.watch(_popularServicesProvider);
+
+    return async.when(
+      loading: () => Container(
+        height: 110,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: cs.surface.withOpacity(0.90),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: cs.outlineVariant.withOpacity(0.5)),
+        ),
+        child: const SizedBox(
+          width: 22,
+          height: 22,
+          child: CircularProgressIndicator(strokeWidth: 2.5),
+        ),
+      ),
+      error: (_, __) => Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: cs.surface.withOpacity(0.90),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: cs.outlineVariant.withOpacity(0.5)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.error_outline_rounded, color: cs.error, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Could not load services.',
+                style: theme.textTheme.bodySmall,
+              ),
+            ),
+            TextButton(
+              onPressed: () => ref.invalidate(_popularServicesProvider),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
+      data: (services) {
+        if (services.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: cs.surface.withOpacity(0.90),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: cs.outlineVariant.withOpacity(0.5)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.design_services_outlined,
+                    color: cs.primary, size: 20),
+                const SizedBox(width: 10),
+                Text('No services yet. Check back soon.',
+                    style: theme.textTheme.bodySmall),
+              ],
+            ),
+          );
+        }
+        return _PopularServicesRow(services: services, onTap: onServiceTap);
+      },
+    );
+  }
+}
+
+// ─── Components ───────────────────────────────────────────────────────────────
 
 class _HomeTopBar extends StatelessWidget {
-  final String title;
-  final String subtitle;
-
-  const _HomeTopBar({required this.title, required this.subtitle});
+  final String greeting;
+  const _HomeTopBar({required this.greeting});
 
   @override
   Widget build(BuildContext context) {
@@ -276,32 +418,41 @@ class _HomeTopBar extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                title,
+                greeting,
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w900,
-                  color: cs.onBackground,
+                  color: cs.onSurface,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
-                subtitle,
+                'What do you need fixed today?',
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: cs.onBackground.withOpacity(0.65),
+                  color: cs.onSurface.withOpacity(0.62),
                 ),
               ),
             ],
           ),
         ),
-        Container(
-          height: 44,
-          width: 44,
-          decoration: BoxDecoration(
-            color: cs.surface.withOpacity(0.85), // ✅ touch of white
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: cs.outlineVariant.withOpacity(0.6)),
+        // Tappable bell — wire to notifications screen when ready
+        _Pressable(
+          onTap: () {
+            // TODO: Navigator.push to NotificationsScreen
+          },
+          child: Container(
+            height: 44,
+            width: 44,
+            decoration: BoxDecoration(
+              color: cs.surface.withOpacity(0.85),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: cs.outlineVariant.withOpacity(0.6)),
+            ),
+            child: Icon(
+              Icons.notifications_none_rounded,
+              color: cs.onSurface,
+            ),
           ),
-          child: Icon(Icons.notifications_none_rounded, color: cs.onSurface),
         ),
       ],
     );
@@ -309,20 +460,14 @@ class _HomeTopBar extends StatelessWidget {
 }
 
 class _HeroHeader extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final String imageAsset;
-  final String primaryCtaText;
-  final String secondaryCtaText;
+  final bool hasActiveJob;
+  final CustomerOrder? activeOrder;
   final VoidCallback onPrimaryTap;
   final VoidCallback onSecondaryTap;
 
   const _HeroHeader({
-    required this.title,
-    required this.subtitle,
-    required this.imageAsset,
-    required this.primaryCtaText,
-    required this.secondaryCtaText,
+    required this.hasActiveJob,
+    required this.activeOrder,
     required this.onPrimaryTap,
     required this.onSecondaryTap,
   });
@@ -332,12 +477,18 @@ class _HeroHeader extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
+    final heroTitle =
+        hasActiveJob ? 'Job in progress' : 'Fast. Verified. Nearby.';
+    final heroSubtitle = hasActiveJob
+        ? '${activeOrder!.serviceName} • ${activeOrder!.stage.label}'
+        : 'Track jobs like deliveries and chat with technicians.';
+    final primaryCtaText = hasActiveJob ? 'Track Job' : 'Book a Service';
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(22),
       child: Container(
         height: 210,
         decoration: BoxDecoration(
-          // ✅ gradient uses more “white/surface” to break the blue wall
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -361,7 +512,7 @@ class _HeroHeader extends StatelessWidget {
               child: Opacity(
                 opacity: 0.28,
                 child: Image.asset(
-                  imageAsset,
+                  'assets/images/customer/photo-1621905252507-b35492cc74b4.png',
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                 ),
@@ -384,8 +535,42 @@ class _HeroHeader extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (hasActiveJob) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: cs.primary.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(999),
+                        border:
+                            Border.all(color: cs.primary.withOpacity(0.22)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 7,
+                            height: 7,
+                            decoration: BoxDecoration(
+                              color: cs.primary,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Active job',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w900,
+                              color: cs.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   Text(
-                    title,
+                    heroTitle,
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w900,
                       color: cs.onSurface,
@@ -393,7 +578,7 @@ class _HeroHeader extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    subtitle,
+                    heroSubtitle,
                     style: theme.textTheme.bodySmall?.copyWith(
                       fontWeight: FontWeight.w600,
                       color: cs.onSurface.withOpacity(0.68),
@@ -407,7 +592,8 @@ class _HeroHeader extends StatelessWidget {
                         child: _Pressable(
                           onTap: onPrimaryTap,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 12),
                             decoration: BoxDecoration(
                               color: cs.primary,
                               borderRadius: BorderRadius.circular(16),
@@ -429,18 +615,15 @@ class _HeroHeader extends StatelessWidget {
                         onTap: onSecondaryTap,
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 12,
-                          ),
+                              horizontal: 14, vertical: 12),
                           decoration: BoxDecoration(
                             color: cs.surface.withOpacity(0.90),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: cs.outlineVariant.withOpacity(0.8),
-                            ),
+                                color: cs.outlineVariant.withOpacity(0.8)),
                           ),
                           child: Text(
-                            secondaryCtaText,
+                            'View Services',
                             style: theme.textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w900,
                               color: cs.onSurface.withOpacity(0.80),
@@ -479,7 +662,7 @@ class _ActionTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: cs.surface.withOpacity(0.92), // ✅ white touch
+        color: cs.surface.withOpacity(0.92),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: cs.outlineVariant.withOpacity(0.6)),
         boxShadow: [
@@ -531,9 +714,10 @@ class _ActionTile extends StatelessWidget {
 }
 
 class _PopularServicesRow extends StatelessWidget {
-  final List<_MiniService> items;
+  final List<Service> services;
+  final void Function(Service) onTap;
 
-  const _PopularServicesRow({required this.items});
+  const _PopularServicesRow({required this.services, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -547,58 +731,84 @@ class _PopularServicesRow extends StatelessWidget {
         border: Border.all(color: cs.outlineVariant.withOpacity(0.6)),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: items.map((s) => _MiniServiceChip(service: s)).toList(),
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: services
+            .map((s) => _MiniServiceChip(service: s, onTap: () => onTap(s)))
+            .toList(),
       ),
     );
   }
 }
 
-class _MiniService {
-  final IconData icon;
-  final String label;
-  const _MiniService({required this.icon, required this.label});
-}
-
 class _MiniServiceChip extends StatelessWidget {
-  final _MiniService service;
-  const _MiniServiceChip({required this.service});
+  final Service service;
+  final VoidCallback onTap;
+
+  const _MiniServiceChip({required this.service, required this.onTap});
+
+  static const _iconMap = <String, IconData>{
+    'plumbing': Icons.plumbing_rounded,
+    'electric': Icons.electrical_services_rounded,
+    'carpent': Icons.carpenter_rounded,
+    'cleaning': Icons.cleaning_services_rounded,
+    'painting': Icons.format_paint_rounded,
+    'ac': Icons.ac_unit_rounded,
+    'air': Icons.ac_unit_rounded,
+  };
+
+  IconData get _icon {
+    final lower = service.name.toLowerCase();
+    for (final e in _iconMap.entries) {
+      if (lower.contains(e.key)) return e.value;
+    }
+    return Icons.design_services_rounded;
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
-    return Column(
-      children: [
-        Container(
-          height: 44,
-          width: 44,
-          decoration: BoxDecoration(
-            color: cs.primaryContainer.withOpacity(0.70),
-            borderRadius: BorderRadius.circular(16),
+    return _Pressable(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            height: 44,
+            width: 44,
+            decoration: BoxDecoration(
+              color: cs.primaryContainer.withOpacity(0.70),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(_icon, color: cs.primary),
           ),
-          child: Icon(service.icon, color: cs.primary),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          service.label,
-          style: theme.textTheme.bodySmall?.copyWith(
-            fontWeight: FontWeight.w800,
-            color: cs.onSurface.withOpacity(0.75),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: 64,
+            child: Text(
+              service.name,
+              maxLines: 2,
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: cs.onSurface.withOpacity(0.75),
+                height: 1.2,
+              ),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
-/* ---------------- Motion helpers ---------------- */
+// ─── Motion helpers ───────────────────────────────────────────────────────────
 
 class _AnimatedIn extends StatefulWidget {
   final Widget child;
   final int delayMs;
-
   const _AnimatedIn({required this.child, this.delayMs = 0});
 
   @override
@@ -611,11 +821,8 @@ class _AnimatedInState extends State<_AnimatedIn>
     vsync: this,
     duration: const Duration(milliseconds: 260),
   );
-
-  late final Animation<double> _fade = CurvedAnimation(
-    parent: _c,
-    curve: Curves.easeOut,
-  );
+  late final Animation<double> _fade =
+      CurvedAnimation(parent: _c, curve: Curves.easeOut);
   late final Animation<Offset> _slide = Tween<Offset>(
     begin: const Offset(0, 0.035),
     end: Offset.zero,
@@ -637,18 +844,15 @@ class _AnimatedInState extends State<_AnimatedIn>
   }
 
   @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _fade,
-      child: SlideTransition(position: _slide, child: widget.child),
-    );
-  }
+  Widget build(BuildContext context) => FadeTransition(
+        opacity: _fade,
+        child: SlideTransition(position: _slide, child: widget.child),
+      );
 }
 
 class _Pressable extends StatefulWidget {
   final Widget child;
   final VoidCallback onTap;
-
   const _Pressable({required this.child, required this.onTap});
 
   @override
@@ -659,32 +863,30 @@ class _PressableState extends State<_Pressable> {
   bool _down = false;
 
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _down = true),
-      onTapCancel: () => setState(() => _down = false),
-      onTapUp: (_) {
-        setState(() => _down = false);
-        widget.onTap();
-      },
-      child: AnimatedScale(
-        scale: _down ? 0.985 : 1,
-        duration: const Duration(milliseconds: 120),
-        curve: Curves.easeOut,
-        child: widget.child,
-      ),
-    );
-  }
+  Widget build(BuildContext context) => GestureDetector(
+        onTapDown: (_) => setState(() => _down = true),
+        onTapCancel: () => setState(() => _down = false),
+        onTapUp: (_) {
+          setState(() => _down = false);
+          widget.onTap();
+        },
+        child: AnimatedScale(
+          scale: _down ? 0.985 : 1,
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+          child: widget.child,
+        ),
+      );
 }
 
-/* ---------------- Background painter ---------------- */
+// ─── Background painter ───────────────────────────────────────────────────────
 
 class _HomeBgPainter extends CustomPainter {
   final Color primary;
   final Color surface;
   final double t;
 
-  _HomeBgPainter({
+  const _HomeBgPainter({
     required this.primary,
     required this.surface,
     required this.t,
@@ -692,33 +894,30 @@ class _HomeBgPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Base background
     final rect = Offset.zero & size;
-    final bg = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [surface.withOpacity(1.0), primary.withOpacity(0.06)],
-      ).createShader(rect);
-    canvas.drawRect(rect, bg);
 
-    // Soft blobs (animated positions)
-    final blob1 = Paint()..color = primary.withOpacity(0.08);
-    final blob2 = Paint()..color = primary.withOpacity(0.06);
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [surface, primary.withOpacity(0.06)],
+        ).createShader(rect),
+    );
 
     final x1 = size.width * (0.15 + 0.05 * math.sin(t * 2 * math.pi));
     final y1 = size.height * (0.18 + 0.03 * math.cos(t * 2 * math.pi));
-    canvas.drawCircle(Offset(x1, y1), size.width * 0.38, blob1);
+    canvas.drawCircle(Offset(x1, y1), size.width * 0.38,
+        Paint()..color = primary.withOpacity(0.08));
 
     final x2 = size.width * (0.92 - 0.06 * math.cos(t * 2 * math.pi));
     final y2 = size.height * (0.45 + 0.04 * math.sin(t * 2 * math.pi));
-    canvas.drawCircle(Offset(x2, y2), size.width * 0.32, blob2);
+    canvas.drawCircle(Offset(x2, y2), size.width * 0.32,
+        Paint()..color = primary.withOpacity(0.06));
   }
 
   @override
-  bool shouldRepaint(covariant _HomeBgPainter oldDelegate) {
-    return oldDelegate.t != t ||
-        oldDelegate.primary != primary ||
-        oldDelegate.surface != surface;
-  }
+  bool shouldRepaint(covariant _HomeBgPainter old) =>
+      old.t != t || old.primary != primary || old.surface != surface;
 }
