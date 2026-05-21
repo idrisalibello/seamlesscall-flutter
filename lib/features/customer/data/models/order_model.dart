@@ -26,6 +26,7 @@ class CustomerOrder {
     PaymentState.executionPending => "Approve & Pay",
     PaymentState.failed => "Retry payment",
     PaymentState.paid => "View receipt",
+    PaymentState.notRequired => "View details",
     PaymentState.inspectionPaid =>
       stage == OrderStage.quoteReady ? "Approve & Pay" : "View details",
   };
@@ -38,7 +39,8 @@ enum PaymentState {
   inspectionPaid,
   executionPending,
   paid,
-  failed;
+  failed,
+  notRequired;
 
   String get pill => switch (this) {
     PaymentState.inspectionDue => "Inspection due",
@@ -46,6 +48,7 @@ enum PaymentState {
     PaymentState.executionPending => "Payment pending",
     PaymentState.paid => "Paid",
     PaymentState.failed => "Failed",
+    PaymentState.notRequired => "No inspection fee",
   };
 
   Color color(ColorScheme cs) => switch (this) {
@@ -54,6 +57,7 @@ enum PaymentState {
     PaymentState.executionPending => cs.secondary,
     PaymentState.paid => cs.primary,
     PaymentState.failed => Colors.red,
+    PaymentState.notRequired => cs.primary,
   };
 }
 

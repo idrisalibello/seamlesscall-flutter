@@ -446,12 +446,14 @@ class _QuoteProformaCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          _QuoteLine(
-            label: "Inspection fee",
-            value: quote.inspectionFeeText,
-            strong: true,
-          ),
-          const SizedBox(height: 8),
+          if (quote.inspectionFeeText != null) ...[
+            _QuoteLine(
+              label: "Inspection fee",
+              value: quote.inspectionFeeText!,
+              strong: true,
+            ),
+            const SizedBox(height: 8),
+          ],
           ...quote.lines.map(
             (l) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
@@ -1409,6 +1411,16 @@ class _TrackingModel {
         : <String, dynamic>{};
     final meta = Map<String, dynamic>.from(data['meta'] ?? const {});
     final summary = Map<String, dynamic>.from(data['status_summary'] ?? const {});
+    final inspection = data['inspection'] is Map<String, dynamic>
+        ? Map<String, dynamic>.from(data['inspection'])
+        : data['inspection_summary'] is Map<String, dynamic>
+            ? Map<String, dynamic>.from(data['inspection_summary'])
+            : <String, dynamic>{};
+    final paymentSummary = data['payment_summary'] is Map<String, dynamic>
+        ? Map<String, dynamic>.from(data['payment_summary'])
+        : job['payment_summary'] is Map<String, dynamic>
+            ? Map<String, dynamic>.from(job['payment_summary'])
+            : <String, dynamic>{};
     final timeline = (data['timeline'] as List<dynamic>? ?? const [])
         .map((e) => Map<String, dynamic>.from(e))
         .toList();
@@ -1431,7 +1443,7 @@ class _TrackingModel {
       techName: (provider['name'] ?? 'Technician not assigned').toString(),
       techRating: provider.isEmpty ? 0.0 : 4.8,
       techJobs: provider.isEmpty ? 0 : 0,
-      quote: _quoteFromApi(status),
+      quote: _quoteFromApi(status, inspection, paymentSummary),
       pickupLabel: address,
       destinationLabel: provider.isEmpty
           ? 'Technician will appear here after assignment'
@@ -1511,34 +1523,39 @@ class _TrackingModel {
     return updates;
   }
 
-  static _QuoteProforma _quoteFromApi(String status) {
+  static _QuoteProforma _quoteFromApi(
+    String status,
+    Map<String, dynamic> inspection,
+    Map<String, dynamic> paymentSummary,
+  ) {
+    final inspectionFeeText = _inspectionFeeText(inspection, paymentSummary);
     switch (status) {
       case 'completed':
-        return const _QuoteProforma(
+        return _QuoteProforma(
           state: _QuoteState.approved,
           bandText: 'Confirmed',
-          inspectionFeeText: 'Paid / processed',
-          lines: [
+          inspectionFeeText: inspectionFeeText ?? 'Paid / processed',
+          lines: const [
             _QuoteLineItem(label: 'Job status', value: 'Completed'),
           ],
           totalText: 'Finalized',
         );
       case 'active':
-        return const _QuoteProforma(
+        return _QuoteProforma(
           state: _QuoteState.ready,
           bandText: 'Awaiting quote approval',
-          inspectionFeeText: 'Inspection underway',
-          lines: [
+          inspectionFeeText: inspectionFeeText ?? 'Inspection underway',
+          lines: const [
             _QuoteLineItem(label: 'Status', value: 'Technician assigned'),
           ],
           totalText: 'Quote pending',
         );
       case 'scheduled':
-        return const _QuoteProforma(
+        return _QuoteProforma(
           state: _QuoteState.pending,
           bandText: 'To be assessed',
-          inspectionFeeText: 'Pending',
-          lines: [
+          inspectionFeeText: inspectionFeeText ?? 'Pending',
+          lines: const [
             _QuoteLineItem(label: 'Status', value: 'Scheduled'),
           ],
           totalText: 'Pending',
@@ -1547,7 +1564,7 @@ class _TrackingModel {
         return const _QuoteProforma(
           state: _QuoteState.rejected,
           bandText: 'Cancelled',
-          inspectionFeeText: 'Not applicable',
+          inspectionFeeText: null,
           lines: [
             _QuoteLineItem(label: 'Status', value: 'Cancelled'),
           ],
@@ -1555,16 +1572,82 @@ class _TrackingModel {
         );
       case 'pending':
       default:
-        return const _QuoteProforma(
+        return _QuoteProforma(
           state: _QuoteState.pending,
           bandText: 'To be assessed after inspection',
-          inspectionFeeText: 'Pending',
-          lines: [
+          inspectionFeeText: inspectionFeeText ?? 'Pending',
+          lines: const [
             _QuoteLineItem(label: 'Status', value: 'Awaiting review'),
           ],
           totalText: 'Pending',
         );
     }
+  }
+
+  static String? _inspectionFeeText(
+    Map<String, dynamic> inspection,
+    Map<String, dynamic> paymentSummary,
+  ) {
+    final explicit = inspection['required'] ??
+        inspection['inspection_required'] ??
+        paymentSummary['inspection_required'];
+    final explicitValue = _toBool(explicit);
+
+    final amount = _toDouble(
+      inspection['amount'] ??
+          inspection['inspection_fee'] ??
+          paymentSummary['amount'],
+    );
+
+    if (explicitValue == false) return null;
+    if (explicitValue == true && amount <= 0) return null;
+    if (explicitValue == null && amount <= 0) return null;
+
+    final status = (inspection['status'] ?? paymentSummary['status'] ?? '')
+        .toString()
+        .toLowerCase();
+    final amountText = _formatAmount(
+      amount,
+      (inspection['currency'] ?? paymentSummary['currency'] ?? 'NGN')
+          .toString(),
+    );
+
+    if (status == 'success') return '$amountText paid';
+    if (status == 'failed' || status == 'abandoned' || status == 'reversed') {
+      return '$amountText failed';
+    }
+    return amountText;
+  }
+
+  static bool? _toBool(dynamic value) {
+    if (value == null) return null;
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+
+    final normalized = value.toString().trim().toLowerCase();
+    if (normalized.isEmpty) return null;
+    if (['1', 'true', 'yes', 'required'].contains(normalized)) return true;
+    if (['0', 'false', 'no', 'not_required', 'none', 'waived']
+        .contains(normalized)) {
+      return false;
+    }
+    return null;
+  }
+
+  static double _toDouble(dynamic value) {
+    if (value == null) return 0;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value.toString()) ?? 0;
+  }
+
+  static String _formatAmount(double amount, String currency) {
+    final symbol = currency.toUpperCase() == 'NGN'
+        ? '₦'
+        : '${currency.toUpperCase()} ';
+    if (amount == amount.roundToDouble()) {
+      return '$symbol${amount.toInt()}';
+    }
+    return '$symbol${amount.toStringAsFixed(2)}';
   }
 
   static String _etaFromStatus(String status, String scheduledTime) {
@@ -1647,7 +1730,7 @@ class _QuoteLineItem {
 class _QuoteProforma {
   final _QuoteState state;
   final String bandText;
-  final String inspectionFeeText;
+  final String? inspectionFeeText;
   final List<_QuoteLineItem> lines;
   final String totalText;
 

@@ -2,13 +2,17 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../common/widgets/main_layout.dart';
+import '../data/models/promotion_model.dart';
 import 'booking_models.dart';
 import 'customer_booking_summary.dart';
 
 class BookingRequestScreen extends StatefulWidget {
   final String? serviceName;
 
-  const BookingRequestScreen({super.key, this.serviceName});
+  /// Pre-loaded promotion forwarded from ServiceDetailsScreen.
+  final CustomerPromotion? autoPromo;
+
+  const BookingRequestScreen({super.key, this.serviceName, this.autoPromo});
 
   @override
   State<BookingRequestScreen> createState() => _BookingRequestScreenState();
@@ -48,6 +52,8 @@ class _BookingRequestScreenState extends State<BookingRequestScreen>
       scheduledAt: _scheduledAt,
       address: _addressCtrl.text.trim(),
       note: _noteCtrl.text.trim(),
+      // autoPromo pre-loaded — promotionId and discountApplied are resolved
+      // in BookingSummaryScreen after the validate endpoint is called
     );
 
     final canProceed =
@@ -332,7 +338,7 @@ class _BookingRequestScreenState extends State<BookingRequestScreen>
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => BookingSummaryScreen(draft: draft),
+                        builder: (_) => BookingSummaryScreen(draft: draft, autoPromo: widget.autoPromo),
                       ),
                     );
                   },

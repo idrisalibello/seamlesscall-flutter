@@ -5,6 +5,7 @@ import 'package:seamlesscall/features/auth/presentation/auth_providers.dart';
 import 'package:seamlesscall/features/customer/data/models/customer_orders_repository.dart';
 import 'package:seamlesscall/features/customer/data/models/customer_repository.dart';
 import 'package:seamlesscall/features/customer/data/models/order_model.dart';
+import 'package:seamlesscall/features/customer/data/models/popular_service_model.dart';
 import 'package:seamlesscall/features/customer/data/models/service_model.dart';
 import 'package:seamlesscall/features/customer/presentation/apply_as_provider_screen.dart';
 import 'package:seamlesscall/features/customer/presentation/customer_chat_screen.dart';
@@ -26,14 +27,10 @@ final _activeOrderProvider =
   }
 });
 
-/// Fetches first category's services for the "Popular services" row.
+/// Fetches services ranked by bookings, ratings, and views.
 final _popularServicesProvider =
-    FutureProvider.autoDispose<List<Service>>((ref) async {
-  final repo = CustomerRepository();
-  final categories = await repo.getCategories();
-  if (categories.isEmpty) return [];
-  final services = await repo.getServicesByCategory(categories.first.id);
-  return services.take(4).toList();
+    FutureProvider.autoDispose<List<PopularService>>((ref) async {
+  return CustomerRepository().getPopularServices(limit: 6);
 });
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -312,27 +309,31 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen>
         MaterialPageRoute(builder: (_) => JobTrackingScreen(jobId: jobId)),
       );
 
-  void _goToServiceDetail(Service service) => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ServiceDetailsScreen(
-            serviceName: service.name,
-            serviceDescription: service.description,
-          ),
+  void _goToServiceDetail(PopularService service) {
+    // Record the view (fire-and-forget)
+    CustomerRepository().recordServiceView(service.id);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ServiceDetailsScreen(
+          serviceName: service.name,
+          serviceDescription: service.description,
         ),
-      );
+      ),
+    );
+  }
 }
 
 // ─── _PopularServicesSection ──────────────────────────────────────────────────
 
 class _PopularServicesSection extends ConsumerWidget {
-  final void Function(Service) onServiceTap;
+  final void Function(PopularService) onServiceTap;
   const _PopularServicesSection({required this.onServiceTap});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final cs = theme.colorScheme;
+    final cs    = theme.colorScheme;
     final async = ref.watch(_popularServicesProvider);
 
     return async.when(
@@ -362,10 +363,8 @@ class _PopularServicesSection extends ConsumerWidget {
             Icon(Icons.error_outline_rounded, color: cs.error, size: 20),
             const SizedBox(width: 10),
             Expanded(
-              child: Text(
-                'Could not load services.',
-                style: theme.textTheme.bodySmall,
-              ),
+              child: Text('Could not load services.',
+                  style: theme.textTheme.bodySmall),
             ),
             TextButton(
               onPressed: () => ref.invalidate(_popularServicesProvider),
@@ -714,8 +713,8 @@ class _ActionTile extends StatelessWidget {
 }
 
 class _PopularServicesRow extends StatelessWidget {
-  final List<Service> services;
-  final void Function(Service) onTap;
+  final List<PopularService> services;
+  final void Function(PopularService) onTap;
 
   const _PopularServicesRow({required this.services, required this.onTap});
 
@@ -730,30 +729,37 @@ class _PopularServicesRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: cs.outlineVariant.withOpacity(0.6)),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 12,
+        alignment: WrapAlignment.spaceAround,
         children: services
-            .map((s) => _MiniServiceChip(service: s, onTap: () => onTap(s)))
+            .map((s) => _PopularServiceChip(service: s, onTap: () => onTap(s)))
             .toList(),
       ),
     );
   }
 }
 
-class _MiniServiceChip extends StatelessWidget {
-  final Service service;
+class _PopularServiceChip extends StatelessWidget {
+  final PopularService service;
   final VoidCallback onTap;
 
-  const _MiniServiceChip({required this.service, required this.onTap});
+  const _PopularServiceChip({required this.service, required this.onTap});
 
   static const _iconMap = <String, IconData>{
-    'plumbing': Icons.plumbing_rounded,
-    'electric': Icons.electrical_services_rounded,
-    'carpent': Icons.carpenter_rounded,
-    'cleaning': Icons.cleaning_services_rounded,
-    'painting': Icons.format_paint_rounded,
-    'ac': Icons.ac_unit_rounded,
-    'air': Icons.ac_unit_rounded,
+    'plumbing':  Icons.plumbing_rounded,
+    'bore':      Icons.water_rounded,
+    'overhead':  Icons.water_rounded,
+    'electric':  Icons.electrical_services_rounded,
+    'renewable': Icons.solar_power_rounded,
+    'solar':     Icons.solar_power_rounded,
+    'carpent':   Icons.carpenter_rounded,
+    'furniture': Icons.chair_rounded,
+    'cleaning':  Icons.cleaning_services_rounded,
+    'painting':  Icons.format_paint_rounded,
+    'ac':        Icons.ac_unit_rounded,
+    'air':       Icons.ac_unit_rounded,
   };
 
   IconData get _icon {
@@ -767,38 +773,61 @@ class _MiniServiceChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final cs = theme.colorScheme;
+    final cs    = theme.colorScheme;
 
     return _Pressable(
       onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            height: 44,
-            width: 44,
-            decoration: BoxDecoration(
-              color: cs.primaryContainer.withOpacity(0.70),
-              borderRadius: BorderRadius.circular(16),
+      child: SizedBox(
+        width: 72,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              height: 48,
+              width: 48,
+              decoration: BoxDecoration(
+                color: cs.primaryContainer.withOpacity(0.70),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(_icon, color: cs.primary),
             ),
-            child: Icon(_icon, color: cs.primary),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: 64,
-            child: Text(
+            const SizedBox(height: 6),
+            Text(
               service.name,
               maxLines: 2,
               textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.w800,
-                color: cs.onSurface.withOpacity(0.75),
+                color: cs.onSurface.withOpacity(0.80),
                 height: 1.2,
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 3),
+            // Booking count badge
+            if (service.bookingCount > 0)
+              Text(
+                service.bookingLabel,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: cs.primary.withOpacity(0.80),
+                ),
+              ),
+            // Rating badge
+            if (service.ratingCount > 0)
+              Text(
+                service.ratingLabel,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.amber.shade700,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

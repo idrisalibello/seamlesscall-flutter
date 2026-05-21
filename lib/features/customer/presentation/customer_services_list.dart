@@ -2,10 +2,15 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../data/models/customer_repository.dart';
+import '../data/models/promotion_model.dart';
 import 'customer_service_details.dart';
 
 class ServicesListScreen extends StatefulWidget {
-  const ServicesListScreen({super.key});
+  /// When navigated from a promotion card, this promo is pre-loaded so the
+  /// customer can book immediately without re-entering a code.
+  final CustomerPromotion? autoPromo;
+
+  const ServicesListScreen({super.key, this.autoPromo});
 
   @override
   State<ServicesListScreen> createState() => _ServicesListScreenState();
@@ -190,6 +195,18 @@ class _ServicesListScreenState extends State<ServicesListScreen>
                   ),
                 ),
 
+                // Active promotion banner
+                if (widget.autoPromo != null)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: _AnimatedIn(
+                        delayMs: 130,
+                        child: _PromoBanner(promo: widget.autoPromo!),
+                      ),
+                    ),
+                  ),
+
                 SliverToBoxAdapter(
                   child: _AnimatedIn(
                     delayMs: 160,
@@ -331,6 +348,7 @@ class _ServicesListScreenState extends State<ServicesListScreen>
                                 MaterialPageRoute(
                                   builder: (_) => ServiceDetailsScreen(
                                     serviceName: item.title,
+                                    autoPromo: widget.autoPromo,
                                   ),
                                 ),
                               );
@@ -880,6 +898,63 @@ class _SoftBgPainter extends CustomPainter {
     return oldDelegate.t != t ||
         oldDelegate.primary != primary ||
         oldDelegate.surface != surface;
+  }
+}
+
+
+/* ---------------- Promotion banner ---------------- */
+
+class _PromoBanner extends StatelessWidget {
+  final dynamic promo; // CustomerPromotion
+  const _PromoBanner({required this.promo});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs    = theme.colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: cs.primaryContainer.withOpacity(0.55),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cs.primary.withOpacity(0.22)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.local_offer_rounded, color: cs.primary, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${promo.discountLabel} applied',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    color: cs.primary,
+                  ),
+                ),
+                Text(
+                  promo.title,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: cs.onSurface.withOpacity(0.72),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            promo.validityLabel,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: cs.onSurface.withOpacity(0.55),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

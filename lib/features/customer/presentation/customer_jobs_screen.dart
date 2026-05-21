@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:seamlesscall/features/customer/presentation/customer_order_details_screen.dart';
 import 'package:seamlesscall/features/customer/presentation/job_tracking_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../data/models/customer_orders_repository.dart';
 import '../data/models/order_model.dart';
@@ -21,6 +23,7 @@ class _CustomerJobsScreenState extends State<CustomerJobsScreen>
   bool _loading = true;
   String? _error;
   List<CustomerOrder> _all = const [];
+  String? _busyJobId;
 
   late final AnimationController _bg = AnimationController(
     vsync: this,
@@ -53,7 +56,155 @@ class _CustomerJobsScreenState extends State<CustomerJobsScreen>
     }
   }
 
-  
+  Future<void> _handlePrimaryAction(CustomerOrder order) async {
+    if (_busyJobId != null) return;
+
+    if (order.payment == PaymentState.inspectionDue ||
+        order.payment == PaymentState.failed) {
+      await _startInspectionPayment(order);
+      return;
+    }
+
+    if (order.payment == PaymentState.executionPending) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Execution payment is the next phase. Inspection payment is live now.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (order.payment == PaymentState.notRequired) {
+      _openDetails(order);
+      return;
+    }
+
+    _openDetails(order);
+  }
+
+  void _openDetails(CustomerOrder order) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CustomerOrderDetailsScreen(jobId: order.jobId),
+      ),
+    );
+  }
+
+  void _openTracking(CustomerOrder order) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => JobTrackingScreen(jobId: order.jobId)),
+    );
+  }
+
+  Future<void> _startInspectionPayment(CustomerOrder order) async {
+    setState(() => _busyJobId = order.jobId);
+
+    try {
+      final init = await _repo.initializeInspectionPayment(order.jobId);
+
+      final alreadyPaid = init['already_paid'] == true;
+      final notRequired =
+          init['inspection_required'] == false ||
+          init['required'] == false ||
+          init['not_required'] == true;
+
+      if (alreadyPaid || notRequired) {
+        if (!mounted) return;
+        await _load();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              alreadyPaid
+                  ? 'Inspection fee is already paid.'
+                  : 'No inspection fee is required for this order.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      final authUrl = (init['authorization_url'] ?? '').toString();
+      final reference = (init['reference'] ?? '').toString();
+
+      if (authUrl.isEmpty || reference.isEmpty) {
+        throw Exception(
+          'Payment initialization returned incomplete checkout data.',
+        );
+      }
+
+      final uri = Uri.tryParse(authUrl);
+      if (uri == null) {
+        throw Exception('Invalid Paystack checkout URL returned.');
+      }
+
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!launched) {
+        throw Exception('Could not open Paystack checkout.');
+      }
+
+      if (!mounted) return;
+
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Complete payment'),
+          content: const Text(
+            'After completing the Paystack checkout, return here and tap Verify payment.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Later'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _verifyPayment(reference);
+              },
+              child: const Text('Verify payment'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _busyJobId = null);
+      }
+    }
+  }
+
+  Future<void> _verifyPayment(String reference) async {
+    try {
+      final result = await _repo.verifyPayment(reference);
+      if (!mounted) return;
+
+      await _load();
+
+      final status = (result['status'] ?? 'pending').toString();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Payment verification result: $status')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    }
+  }
+
 
   @override
   void dispose() {
@@ -243,22 +394,10 @@ class _CustomerJobsScreenState extends State<CustomerJobsScreen>
                         separatorBuilder: (_, __) => const SizedBox(height: 12),
                         itemBuilder: (_, i) => _OrderCard(
                           item: list[i],
-                          onOpen: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    JobTrackingScreen(jobId: list[i].jobId),
-                              ),
-                            );
-                          },
-                          onPrimary: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(list[i].primaryActionText),
-                              ),
-                            );
-                          },
+                          busy: _busyJobId == list[i].jobId,
+                          onOpen: () => _openDetails(list[i]),
+                          onTrack: () => _openTracking(list[i]),
+                          onPrimary: () => _handlePrimaryAction(list[i]),
                         ),
                       ),
                     ),
@@ -343,12 +482,16 @@ class _SegmentedTabs extends StatelessWidget {
 
 class _OrderCard extends StatefulWidget {
   final CustomerOrder item;
+  final bool busy;
   final VoidCallback onOpen;
+  final VoidCallback onTrack;
   final VoidCallback onPrimary;
 
   const _OrderCard({
     required this.item,
+    required this.busy,
     required this.onOpen,
+    required this.onTrack,
     required this.onPrimary,
   });
 
@@ -466,7 +609,7 @@ class _OrderCardState extends State<_OrderCard> {
                   Expanded(
                     child: InkWell(
                       borderRadius: BorderRadius.circular(16),
-                      onTap: widget.onPrimary,
+                      onTap: widget.busy ? null : widget.onPrimary,
                       child: Ink(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
@@ -474,13 +617,22 @@ class _OrderCardState extends State<_OrderCard> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Center(
-                          child: Text(
-                            item.primaryActionText,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w900,
-                              color: cs.onPrimary,
-                            ),
-                          ),
+                          child: widget.busy
+                              ? SizedBox(
+                                  height: 18,
+                                  width: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: cs.onPrimary,
+                                  ),
+                                )
+                              : Text(
+                                  item.primaryActionText,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.w900,
+                                    color: cs.onPrimary,
+                                  ),
+                                ),
                         ),
                       ),
                     ),
@@ -488,7 +640,7 @@ class _OrderCardState extends State<_OrderCard> {
                   const SizedBox(width: 10),
                   InkWell(
                     borderRadius: BorderRadius.circular(16),
-                    onTap: widget.onOpen,
+                    onTap: widget.onTrack,
                     child: Ink(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 14,

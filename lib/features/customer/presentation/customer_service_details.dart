@@ -2,17 +2,19 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../common/widgets/main_layout.dart';
+import '../data/models/promotion_model.dart';
 import 'customer_booking_request.dart';
 
 class ServiceDetailsScreen extends StatefulWidget {
-  /// Backward-compatible: existing calls pass only serviceName.
   final String serviceName;
-
-  /// Optional enhancements (if caller provides later).
   final String? serviceDescription;
   final String? categoryName;
   final String? imageAsset;
   final String? badge;
+
+  /// Pre-loaded promotion passed from ServicesListScreen or a promo card tap.
+  /// Forwarded into BookingRequestScreen → BookingSummaryScreen.
+  final CustomerPromotion? autoPromo;
 
   const ServiceDetailsScreen({
     super.key,
@@ -21,6 +23,7 @@ class ServiceDetailsScreen extends StatefulWidget {
     this.categoryName,
     this.imageAsset,
     this.badge,
+    this.autoPromo,
   });
 
   @override
@@ -157,6 +160,7 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen>
                       MaterialPageRoute(
                         builder: (_) => BookingRequestScreen(
                           serviceName: widget.serviceName,
+                          autoPromo: widget.autoPromo,
                         ),
                       ),
                     );

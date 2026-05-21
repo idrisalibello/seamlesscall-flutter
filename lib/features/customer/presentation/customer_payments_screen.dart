@@ -380,6 +380,7 @@ class _CustomerPaymentsScreenState extends State<CustomerPaymentsScreen>
       PaymentState.inspectionDue => _ActionKind.warning,
       PaymentState.inspectionPaid => _ActionKind.success,
       PaymentState.paid => _ActionKind.success,
+      PaymentState.notRequired => _ActionKind.success,
     };
 
     final icon = switch (order.payment) {
@@ -388,6 +389,7 @@ class _CustomerPaymentsScreenState extends State<CustomerPaymentsScreen>
       PaymentState.inspectionDue => Icons.receipt_long_rounded,
       PaymentState.inspectionPaid => Icons.verified_rounded,
       PaymentState.paid => Icons.receipt_long_rounded,
+      PaymentState.notRequired => Icons.verified_rounded,
     };
 
     return _PayAction(
@@ -404,7 +406,8 @@ class _CustomerPaymentsScreenState extends State<CustomerPaymentsScreen>
       PaymentState.failed => _TxStatus.failed,
       PaymentState.executionPending ||
       PaymentState.inspectionDue ||
-      PaymentState.inspectionPaid =>
+      PaymentState.inspectionPaid ||
+      PaymentState.notRequired =>
         _TxStatus.pending,
     };
 

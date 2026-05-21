@@ -98,6 +98,11 @@ class CustomerOrdersRepository {
     final paymentSummary = row['payment_summary'] is Map<String, dynamic>
         ? Map<String, dynamic>.from(row['payment_summary'])
         : <String, dynamic>{};
+    final inspectionSummary = row['inspection'] is Map<String, dynamic>
+        ? Map<String, dynamic>.from(row['inspection'])
+        : row['inspection_summary'] is Map<String, dynamic>
+            ? Map<String, dynamic>.from(row['inspection_summary'])
+            : <String, dynamic>{};
 
     final status = (row['status'] ?? '').toString().toLowerCase();
     final providerId = row['provider_id'];
@@ -110,14 +115,28 @@ class CustomerOrdersRepository {
         : (scheduledTime.isNotEmpty ? scheduledTime : 'Service request');
 
     final paymentStatus = (paymentSummary['status'] ?? '').toString().toLowerCase();
+    final inspectionRequired = _inspectionRequired(
+      row: row,
+      inspectionSummary: inspectionSummary,
+      paymentSummary: paymentSummary,
+    );
+    final inspectionAmount =
+        (inspectionSummary['amount'] ??
+                inspectionSummary['inspection_fee'] ??
+                paymentSummary['amount'] ??
+                0)
+            .toString();
 
     final ({OrderStage stage, PaymentState payment, String amountText}) mapped =
         _mapStatus(
           status: status,
           paymentStatus: paymentStatus,
           providerAssigned: providerId != null,
-          amount: (paymentSummary['amount'] ?? 0).toString(),
-          currency: (paymentSummary['currency'] ?? 'NGN').toString(),
+          inspectionRequired: inspectionRequired,
+          amount: inspectionAmount,
+          currency:
+              (inspectionSummary['currency'] ?? paymentSummary['currency'] ?? 'NGN')
+                  .toString(),
         );
 
     return CustomerOrder(
@@ -149,14 +168,66 @@ class CustomerOrdersRepository {
     return const {};
   }
 
+  bool _inspectionRequired({
+    required Map<String, dynamic> row,
+    required Map<String, dynamic> inspectionSummary,
+    required Map<String, dynamic> paymentSummary,
+  }) {
+    final explicit = inspectionSummary['required'] ??
+        inspectionSummary['inspection_required'] ??
+        row['inspection_required'] ??
+        paymentSummary['inspection_required'];
+
+    final explicitValue = _toBool(explicit);
+    if (explicitValue != null) return explicitValue;
+
+    final amount = _toDouble(
+      inspectionSummary['amount'] ??
+          inspectionSummary['inspection_fee'] ??
+          paymentSummary['amount'],
+    );
+    final paymentStatus = (paymentSummary['status'] ?? '').toString().toLowerCase();
+    if (paymentStatus.isNotEmpty &&
+        !['not_required', 'none', 'waived'].contains(paymentStatus)) {
+      return true;
+    }
+
+    return amount > 0;
+  }
+
+  bool? _toBool(dynamic value) {
+    if (value == null) return null;
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+
+    final normalized = value.toString().trim().toLowerCase();
+    if (normalized.isEmpty) return null;
+    if (['1', 'true', 'yes', 'required'].contains(normalized)) return true;
+    if (['0', 'false', 'no', 'not_required', 'none', 'waived']
+        .contains(normalized)) {
+      return false;
+    }
+
+    return null;
+  }
+
+  double _toDouble(dynamic value) {
+    if (value == null) return 0;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value.toString()) ?? 0;
+  }
+
   ({OrderStage stage, PaymentState payment, String amountText}) _mapStatus({
     required String status,
     required String paymentStatus,
     required bool providerAssigned,
+    required bool inspectionRequired,
     required String amount,
     required String currency,
   }) {
     final amountText = _formatAmount(amount, currency);
+    final amountValue = _toDouble(amount);
+    final hasInspectionFee = inspectionRequired && amountValue > 0;
 
     if (status == 'completed') {
       return (
@@ -171,6 +242,30 @@ class CustomerOrdersRepository {
         stage: OrderStage.cancelled,
         payment: PaymentState.failed,
         amountText: 'Cancelled',
+      );
+    }
+
+    if (!inspectionRequired) {
+      return (
+        stage: status == 'active'
+            ? providerAssigned
+                ? OrderStage.enRoute
+                : OrderStage.inProgress
+            : OrderStage.requested,
+        payment: PaymentState.notRequired,
+        amountText: 'No inspection fee required',
+      );
+    }
+
+    if (!hasInspectionFee) {
+      return (
+        stage: status == 'active'
+            ? providerAssigned
+                ? OrderStage.enRoute
+                : OrderStage.inProgress
+            : OrderStage.requested,
+        payment: PaymentState.notRequired,
+        amountText: 'Inspection fee waived',
       );
     }
 
