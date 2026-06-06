@@ -43,6 +43,7 @@ import 'package:seamlesscall/features/system/roles_permissions_screen.dart';
 import 'package:seamlesscall/features/system/integrations_screen.dart';
 import 'package:seamlesscall/features/system/feature_toggles_screen.dart';
 import 'package:seamlesscall/features/system/maintenance_mode_screen.dart';
+import 'package:seamlesscall/features/admin/presentation/admin_chat_screen.dart';
 import 'package:seamlesscall/features/admin/presentation/admin_provider_applications.dart';
 import 'package:seamlesscall/features/admin/presentation/create_admin_user_screen.dart';
 import 'package:seamlesscall/features/system/presentation/users_list_screen.dart';
@@ -149,6 +150,16 @@ class _AdminShellState extends ConsumerState<AdminShell> {
           label: 'Provider Performance',
           route: '/admin/providers/performance',
           permission: 'view-provider-performance',
+        ),
+      ],
+    ),
+    _AdminMenuSection(
+      title: 'Support',
+      items: [
+        _AdminMenuItem(
+          label: 'Customer Chat',
+          route: '/admin/support/chat',
+          permission: 'manage-support-chat',
         ),
       ],
     ),
@@ -326,6 +337,9 @@ class _AdminShellState extends ConsumerState<AdminShell> {
         return const VerificationQueueScreen();
       case '/admin/providers/performance':
         return const ProviderPerformanceScreen();
+
+      case '/admin/support/chat':
+        return const AdminChatScreen();
 
       case '/admin/finance/earnings':
         return const EarningsOverviewScreen();

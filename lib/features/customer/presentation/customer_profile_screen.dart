@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:seamlesscall/features/auth/presentation/auth_providers.dart';
+import 'package:seamlesscall/features/customer/presentation/customer_account_provider.dart';
 import 'package:seamlesscall/features/customer/presentation/customer_chat_screen.dart';
 
 enum ProfileAction { accountSettings, helpSupport, logout }
@@ -364,7 +365,9 @@ class _AccountSettingsScreen extends ConsumerWidget {
     final newName = await Navigator.push<String>(
       context,
       MaterialPageRoute(
-        builder: (_) => _ChangeNameScreen(initialName: _displayName(currentAuth)),
+        builder: (_) => _ChangeNameScreen(
+          initialName: _displayName(currentAuth),
+        ),
       ),
     );
 
@@ -382,6 +385,14 @@ class _AccountSettingsScreen extends ConsumerWidget {
   }
 
   void _openGuardedFlow(BuildContext context, _GuardedProfileFlow flow) {
+    if (flow == _GuardedProfileFlow.password) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const _ChangePasswordScreen()),
+      );
+      return;
+    }
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -682,6 +693,207 @@ class _ChangeNameScreenState extends State<_ChangeNameScreen> {
             FilledButton(
               onPressed: _save,
               child: const Text('Save name'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ChangePasswordScreen extends ConsumerStatefulWidget {
+  const _ChangePasswordScreen();
+
+  @override
+  ConsumerState<_ChangePasswordScreen> createState() =>
+      _ChangePasswordScreenState();
+}
+
+class _ChangePasswordScreenState extends ConsumerState<_ChangePasswordScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _currentPasswordController = TextEditingController();
+  final _newPasswordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+
+  bool _hideCurrentPassword = true;
+  bool _hideNewPassword = true;
+  bool _hideConfirmPassword = true;
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _currentPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  String _errorMessage(Object error) {
+    return error.toString().replaceFirst('Exception: ', '');
+  }
+
+  Future<void> _submit() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    setState(() => _submitting = true);
+
+    try {
+      await ref.read(customerAccountRepositoryProvider).changePassword(
+            currentPassword: _currentPasswordController.text,
+            newPassword: _newPasswordController.text,
+            confirmPassword: _confirmPasswordController.text,
+          );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password changed successfully.')),
+      );
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_errorMessage(e))),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _submitting = false);
+      }
+    }
+  }
+
+  String? _validateCurrentPassword(String? value) {
+    if ((value ?? '').isEmpty) return 'Enter your current password';
+    return null;
+  }
+
+  String? _validateNewPassword(String? value) {
+    final password = value ?? '';
+    if (password.isEmpty) return 'Enter a new password';
+    if (password.length < 8) return 'Password must be at least 8 characters';
+    if (password == _currentPasswordController.text) {
+      return 'New password must be different from current password';
+    }
+    return null;
+  }
+
+  String? _validateConfirmPassword(String? value) {
+    final password = value ?? '';
+    if (password.isEmpty) return 'Confirm your new password';
+    if (password != _newPasswordController.text) {
+      return 'Passwords do not match';
+    }
+    return null;
+  }
+
+  Widget _visibilityButton({
+    required bool hidden,
+    required VoidCallback onPressed,
+  }) {
+    return IconButton(
+      onPressed: onPressed,
+      icon: Icon(hidden ? Icons.visibility_outlined : Icons.visibility_off),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Change Password')),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            Icon(Icons.lock_reset_outlined, color: cs.primary, size: 48),
+            const SizedBox(height: 18),
+            Text(
+              'Secure password change',
+              style: theme.textTheme.titleLarge?.copyWith(
+                color: cs.onSurface,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            _SensitiveAccountNotice(
+              text:
+                  'For your safety, enter your current password before setting a new one. This keeps password changes guarded and prevents easy inline edits.',
+            ),
+            const SizedBox(height: 20),
+            TextFormField(
+              controller: _currentPasswordController,
+              obscureText: _hideCurrentPassword,
+              enabled: !_submitting,
+              textInputAction: TextInputAction.next,
+              decoration: InputDecoration(
+                labelText: 'Current password',
+                border: const OutlineInputBorder(),
+                suffixIcon: _visibilityButton(
+                  hidden: _hideCurrentPassword,
+                  onPressed: () {
+                    setState(() {
+                      _hideCurrentPassword = !_hideCurrentPassword;
+                    });
+                  },
+                ),
+              ),
+              validator: _validateCurrentPassword,
+            ),
+            const SizedBox(height: 14),
+            TextFormField(
+              controller: _newPasswordController,
+              obscureText: _hideNewPassword,
+              enabled: !_submitting,
+              textInputAction: TextInputAction.next,
+              decoration: InputDecoration(
+                labelText: 'New password',
+                border: const OutlineInputBorder(),
+                suffixIcon: _visibilityButton(
+                  hidden: _hideNewPassword,
+                  onPressed: () {
+                    setState(() {
+                      _hideNewPassword = !_hideNewPassword;
+                    });
+                  },
+                ),
+              ),
+              validator: _validateNewPassword,
+            ),
+            const SizedBox(height: 14),
+            TextFormField(
+              controller: _confirmPasswordController,
+              obscureText: _hideConfirmPassword,
+              enabled: !_submitting,
+              textInputAction: TextInputAction.done,
+              decoration: InputDecoration(
+                labelText: 'Confirm new password',
+                border: const OutlineInputBorder(),
+                suffixIcon: _visibilityButton(
+                  hidden: _hideConfirmPassword,
+                  onPressed: () {
+                    setState(() {
+                      _hideConfirmPassword = !_hideConfirmPassword;
+                    });
+                  },
+                ),
+              ),
+              validator: _validateConfirmPassword,
+              onFieldSubmitted: (_) => _submit(),
+            ),
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: _submitting ? null : _submit,
+              child: _submitting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Change password'),
             ),
           ],
         ),
